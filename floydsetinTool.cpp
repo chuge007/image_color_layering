@@ -1264,9 +1264,10 @@ void floydsetinTool::halftoneUsingLineWithErrorDiffusion(Mat& src, Mat& dst,vect
 
 
 
-void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, float cell_size, bool horizontal_lines) {
+void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, float &line_distance,float imageHeight , float cell_size, int grayLevel,bool horizontal_lines) {
     Mat gray;
-
+    //line_distance=10000000;
+    std::vector<float> linDs;
        // 检查图像的通道数，如果是彩色图像则转换为灰度图
        if (src.channels() == 3) {
            cvtColor(src, gray, COLOR_BGR2GRAY);
@@ -1293,7 +1294,7 @@ void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat&
            for (int x = 2; x < cols - 2; ++x) {
                // 当前像素的量化值
                int old_pixel = gray.at<uchar>(y, x);
-               int new_pixel = findfitInt(old_pixel, 16);  // 64级量化
+               int new_pixel = findfitInt(old_pixel, grayLevel);  // 64级量化,取值为64的倍数
                gray.at<uchar>(y, x) = new_pixel;
 
                // 计算误差
@@ -1331,23 +1332,34 @@ void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat&
 
                // 绘制线段，考虑灰度调整线宽
                int line_thickness = 1;  // 根据灰度调整线宽
+
                for (int i = 0; i < num_lines; ++i) {
                    if (horizontal_lines) {
                        // 绘制水平线
                        int line_y = static_cast<int>(y) + i * (grid_height / num_lines);
                        lines.push_back({Point(static_cast<int>(x), line_y), Point(static_cast<int>(x) + grid_width, line_y)});
-                       line(dst, Point(static_cast<int>(x), line_y),
-                            Point(static_cast<int>(x) + grid_width, line_y), Scalar(255, 255, 255), line_thickness);
+                       //line(dst, Point(static_cast<int>(x), line_y),
+                            //Point(static_cast<int>(x) + grid_width, line_y), Scalar(255, 255, 255), line_thickness);
+                       linDs.push_back(((imageHeight/(gray.cols))*grid_height)/num_lines);
                    } else {
                        // 绘制垂直线
                        int line_x = static_cast<int>(x) + i * (grid_width / num_lines);
                        lines.push_back({Point(line_x, static_cast<int>(y)), Point(line_x, static_cast<int>(y) + grid_height)});
-                       line(dst, Point(line_x, static_cast<int>(y)),
-                            Point(line_x, static_cast<int>(y) + grid_height), Scalar(255, 255, 255), line_thickness);
+                       //line(dst, Point(line_x, static_cast<int>(y)),
+                            //Point(line_x, static_cast<int>(y) + grid_height), Scalar(255, 255, 255), line_thickness);
+                       linDs.push_back(((imageHeight/(gray.cols))*grid_width)/num_lines);
                    }
                }
+
+
            }
+
        }
+       // 使用 std::min_element 查找最小值
+          auto minIt = std::min_element(linDs.begin(), linDs.end());
+
+          // 解引用迭代器获取最小值
+          line_distance = *minIt;
 }
 
 
@@ -1373,3 +1385,67 @@ void floydsetinTool::saveAsPlt(const string& filename, const vector<LineSegment>
     plt_file << "SP0;\n";  // End plotting
     plt_file.close();
 }
+
+
+void floydsetinTool::mergeLineSegments(const vector<LineSegment>& input_lines, vector<LineSegment>& merged_lines, bool is_horizontal) {
+    if (input_lines.empty()) return;
+
+    // 先按线段的起点排序：根据水平线或垂直线的不同类型，选择排序方式
+    vector<LineSegment> sorted_lines = input_lines;
+    if (is_horizontal) {
+        // 对于水平线段，按y排序，如果y相同则按x排序
+        sort(sorted_lines.begin(), sorted_lines.end(), [](const LineSegment& a, const LineSegment& b) {
+            if (a.start.y == b.start.y) {
+                return a.start.x < b.start.x;
+            }
+            return a.start.y < b.start.y;
+        });
+    } else {
+        // 对于垂直线段，按x排序，如果x相同则按y排序
+        sort(sorted_lines.begin(), sorted_lines.end(), [](const LineSegment& a, const LineSegment& b) {
+            if (a.start.x == b.start.x) {
+                return a.start.y < b.start.y;
+            }
+            return a.start.x < b.start.x;
+        });
+    }
+
+    LineSegment* current_line = new LineSegment(sorted_lines[0]);
+
+    for (size_t i = 1; i < sorted_lines.size(); ++i) {
+        const auto& line = sorted_lines[i];
+
+        if (is_horizontal) {
+            // 处理水平线段的合并情况
+            if (current_line->start.y == current_line->end.y && current_line->start.y == line.start.y) {
+                if (current_line->end.x >= line.start.x) {
+                    current_line->end.x = max(current_line->end.x, line.end.x);
+                } else {
+                    merged_lines.push_back(*current_line);
+                    *current_line = line;
+                }
+            } else {
+                merged_lines.push_back(*current_line);
+                *current_line = line;
+            }
+        } else {
+            // 处理垂直线段的合并情况
+            if (current_line->start.x == current_line->end.x && current_line->start.x == line.start.x) {
+                if (current_line->end.y >= line.start.y) {
+                    current_line->end.y = max(current_line->end.y, line.end.y);
+                } else {
+                    merged_lines.push_back(*current_line);
+                    *current_line = line;
+                }
+            } else {
+                merged_lines.push_back(*current_line);
+                *current_line = line;
+            }
+        }
+    }
+
+    // 添加最后一个线段
+    merged_lines.push_back(*current_line);
+    delete current_line;
+}
+

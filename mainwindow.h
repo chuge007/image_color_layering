@@ -46,30 +46,36 @@ private:
     QString imageSplitDirPath;
     QString inifile_Path;
     QString imagePath;
-    QString cbColorLayerdType;
+    QString colorlayereType;
 
 
     cv::Mat OriginalImage;
     cv::Mat ProcessImage;
-    std::vector<Mat> vecRgb, vecCmyk;
+    std::vector<Mat> vecRgb, vecCmyk,vecCmykRgb;
 
     floydsetinTool* floydsetin;
     Scheme* scheme;
     ImProcessTool* ImProcess;
 
     bool IsStartWithScheme;
+    bool blackLayer;
+    int  DrawLnType;
     int halftoneGridType;
-
-
+    int gridImageSort;
+    int grayLevel;
+    double imageHeight;
+    double pixelGridHeight;
+    //double colorSaturation;
+    QVector <double> colorSaturationLIst;
+    QVector <bool>   colorLayerList;
     static cv::Mat img, img_resized;
     static void  onMouse(int event, int x, int y, int flags, void* userdata);
 private:
 
     void init();
     void displayImage(const cv::Mat &image, QLabel *label);
-    void saveCurrentScheme(const QString &filePath);
+    int selcetLayre(vector<int> &color);
     void loadScheme(const QString &filePath);
-    void selcetLayre(int& layer);
     void save_setting(const QString &key, const QVariant &value);
 };
 

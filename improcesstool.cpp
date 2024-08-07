@@ -73,3 +73,30 @@ void ImProcessTool::colorSaturation(Mat &img,Mat &out,int index){
 
 
 }
+
+
+
+
+
+void ImProcessTool::resizeImageWithLanczos4(const cv::Mat& inputImage, cv::Mat& outputImage,double targetHeight) {
+    // 检查输入图像是否为空
+        if (inputImage.empty()) {
+            std::cerr << "输入图像为空，无法处理！" << std::endl;
+            return;
+        }
+
+        // 计算缩放因子
+        double scaleFactor = static_cast<double>(targetHeight) / inputImage.rows;
+
+        // 计算新的尺寸，保持纵横比
+        int newWidth = static_cast<int>(inputImage.cols * scaleFactor);
+        int newHeight = targetHeight; // 直接使用目标高度
+
+        // 使用 Lanczos4 插值方法进行缩放
+        cv::resize(inputImage, outputImage, cv::Size(newWidth, newHeight), 0, 0, cv::INTER_LANCZOS4);
+}
+
+
+
+
+

@@ -22,7 +22,8 @@ struct LineSegment {
 public:
     // 保存线段位置信息
     vector<LineSegment> lines;
-
+    vector<LineSegment> linesSegments;
+    void mergeLineSegments(const vector<LineSegment>& input_lines, vector<LineSegment>& merged_lines,bool is_horizontal);
     // 函数声明
     uchar findfit(uchar p_param);
 
@@ -70,7 +71,7 @@ public:
 
     void halftoneWithCirclesDoubelSizeGridTest(Mat& src, Mat& dst, float cell_size, int density_factor);
 
-    void halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst,float cell_size, bool horizontal_lines = true);
+    void halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst,float &line_distance,float imageHeight ,float cell_size,int grayLevel, bool horizontal_lines = true);
 
     void saveAsPlt(const string& filename, const vector<LineSegment>& lines);
 

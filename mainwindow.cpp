@@ -43,8 +43,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->pbNewScheme, &QPushButton::clicked, this, &MainWindow::newScheme);
     connect(ui->pbOpenScheme, &QPushButton::clicked, this, &MainWindow::openScheme);
 
-    connect(ui->pBexportVectorDiagram, &QPushButton::clicked, this, &MainWindow::exportVectorImage);
-    connect(ui->pBexportGrayScaleImage, &QPushButton::clicked, this, &MainWindow::exportGrayImage);
+    //    connect(ui->pBexportVectorDiagram, &QPushButton::clicked, this, &MainWindow::exportVectorImage);
+    //    connect(ui->pBexportGrayScaleImage, &QPushButton::clicked, this, &MainWindow::exportGrayImage);
     //connect(ui->dSBcolorSaturation, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &MainWindow::colorSaturationChanged);
     connect(ui->hSColorSaturation, &QSlider::valueChanged, this, &MainWindow::colorSaturationChanged);
     connect(ui->cBblackLayering, &QCheckBox::toggled, this, &MainWindow::blackLayerChanged);
@@ -53,7 +53,7 @@ MainWindow::MainWindow(QWidget *parent) :
             this,
             &MainWindow::colorLayerChanged);
     connect(ui->cbGridType,
-             QOverload<int>::of(&QComboBox::currentIndexChanged),
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
             this,
             &MainWindow::halftoneGridTypeChanged);
     init();
@@ -84,44 +84,12 @@ void MainWindow::init() {
 
 
     //*****************************************************************************************************
-
-
-    cbColorLayerdType= settings.value("cbColorLayerdType", "").toString();
     scheme->schemePath= settings.value("schemePath", "").toString();
-    halftoneGridType= settings.value("halftoneGridType", "").toInt();
-    ui->cbGridType->setCurrentIndex(halftoneGridType);
 
 
     if (settings.value("IsStartWithScheme", false).toBool()){
         ui->cbStartInScheme->setChecked(true);
         loadScheme(scheme->schemePath);}
-
-
-    if (settings.value("cbColorLayerdType", "CMYK").toString()=="CMYK"){
-
-        ui->lbOriginalImageDisplay_r->setEnabled(false);
-        ui->lbOriginalImageDisplay_r->setEnabled(false);
-        ui->lbOriginalImageDisplay_r->setEnabled(false);
-
-        ui->lbColor1->setText("C");
-        ui->lbColor2->setText("M");
-        ui->lbColor3->setText("Y");
-        ui->lbColor4->setText("K");
-
-    }else {
-
-        ui->lbOriginalImageDisplay_r->setEnabled(true);
-        ui->lbOriginalImageDisplay_r->setEnabled(true);
-        ui->lbOriginalImageDisplay_r->setEnabled(true);
-
-
-        ui->lbColor1->setText("R");
-        ui->lbColor2->setText("G");
-        ui->lbColor3->setText("B");
-
-    }
-
-
 
 }
 
@@ -142,108 +110,123 @@ void MainWindow::loadImage() {
 
 void MainWindow::analyzeImage() {
 
-    if (ProcessImage.empty()){return;};
+    if (ProcessImage.empty()){return;}
+
+    float gridSize_f;
+    float lineDisdance;
+
+    float imageHeight=ui->sBimageHeight->value();
+    float gridSize_pixelGridheight=ui->dSBpixelGridheight->value();
+    int   grayLevel=ui->sbGrayLevel->value();
+    float density_factor=imageHeight/0.025;
+    bool  DrawLntype;
+
+    floydsetin->lines={};
+    floydsetin->linesSegments={};
+
+    if(ui->cmbDrawLnType->currentIndex()==0){DrawLntype=true;}else { DrawLntype=false;}
 
 
-    float gridSize_f=ui->dSBpixelGridheight->value();
-    int   which_layer,density_factor=1;
-    selcetLayre(which_layer);
-
+    vector<int> colorList;
     Mat img_cmyk,halftone_mat,mat_not,processMat,circleOrRect;
 
-
-    img_cmyk.create(ProcessImage.rows, ProcessImage.cols, CV_8UC4);
-
-
-    //bitwise_not(ProcessImage,ProcessImage);
-    // Split CMYK channels
-    ImProcess->splitCMYK(ProcessImage, img_cmyk);
-    split(img_cmyk, vecCmyk);
-    // Split RGB channels
-    split(ProcessImage, vecRgb);
-
-
-    processMat=vecCmyk[which_layer];
-
-    bitwise_not(processMat,processMat);
+    if (ui->cmbColorLayerdType->currentText()=="CMYK"){
+        // Split CMYK channels
+        img_cmyk.create(ProcessImage.rows, ProcessImage.cols, CV_8UC4);
+        ImProcess->splitCMYK(ProcessImage, img_cmyk);
+        split(img_cmyk, vecCmykRgb);}
+    else {
+        // Split RGB channels
+        split(ProcessImage, vecCmykRgb);
+    }
 
 
-    if (halftoneGridType==0){floydsetin->halftoneUsingCircles_doubelSizeGrid(processMat, circleOrRect, gridSize_f,500);}
-    else {floydsetin->halftoneUsingRect_doubelSizeGrid(processMat, circleOrRect, gridSize_f,500);}
+    if(selcetLayre(colorList)==(-1)){
+        QMessageBox box(QMessageBox::Question,QStringLiteral("提示"),QStringLiteral("选择要打印的图层"));
+        box.setStandardButtons (QMessageBox::Ok);
+        box.exec ();
+        return;}
 
-    //floydsetin_16(src);
-    //floydsetin->halftone(ProcessImage,halftone_mat,gridSize);
-    //floydsetin->floydSteinbergHalftoneUsingPointNum(processMat, halftone_mat, gridSize);
+    for(const auto &intColor : colorList){
 
-    //floydsetin->halftoneUsingCircles(processMat, halftone_mat, gridSize);
-    //floydsetin->halftoneWithCirclesDoubelSizeGridTest(processMat, circle, gridSize_f,density_factor);
+        processMat=vecCmykRgb[intColor];
+
+        bitwise_not(processMat,processMat);
+        ImProcess->resizeImageWithLanczos4(processMat,processMat,density_factor);
+        gridSize_f=(processMat.cols/imageHeight)*gridSize_pixelGridheight;
+
+        if (halftoneGridType==0){floydsetin->halftoneUsingCircles_doubelSizeGrid(processMat, circleOrRect, gridSize_f,256);}
+        else {floydsetin->halftoneUsingRect_doubelSizeGrid(processMat, circleOrRect, gridSize_f,256);}
+
+        //floydsetin_16(src);
+        //floydsetin->halftone(ProcessImage,halftone_mat,gridSize);
+        //floydsetin->floydSteinbergHalftoneUsingPointNum(processMat, halftone_mat, gridSize);
+
+        //floydsetin->halftoneUsingCircles(processMat, halftone_mat, gridSize);
+        //floydsetin->halftoneWithCirclesDoubelSizeGridTest(processMat, circle, gridSize_f,density_factor);
+
+        cv::flip(circleOrRect,circleOrRect,0);
+        //floydsetin->halftoneUsingline_doubelSizeGrid_savePat(processMat,floydsetin->lines, gridSize_f,true);
+        //floydsetin->halftoneUsingline_doubelSizeGrid(circle, halftone_mat,floydsetin->lines, gridSize_f*0.5,true);
+        //floydsetin->halftoneUsingLineWithErrorDiffusion(circle, halftone_mat,floydsetin->lines, gridSize_f,true);
+
+        floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(circleOrRect, halftone_mat,lineDisdance,imageHeight,gridSize_f,grayLevel,DrawLntype);
+        cv::flip(circleOrRect,circleOrRect,0);
+        cv::flip(halftone_mat,halftone_mat,0);
+
+        // 将线段位置信息保存为 .plt 文件
+        floydsetin->mergeLineSegments(floydsetin->lines,floydsetin->linesSegments,DrawLntype);
+        QString pltPath=imageSplitDirPath+QString("/LayerColor %1 .plt").arg(intColor);
+        floydsetin->saveAsPlt(pltPath.toStdString(), floydsetin->linesSegments);
+        ui->lbMinLineDs->setText(QString::number(lineDisdance));
 
 
+        if (ui->cmbColorLayerdType->currentText()=="CMYK"){
 
-    cv::flip(circleOrRect,circleOrRect,0);
-    //floydsetin->halftoneUsingline_doubelSizeGrid_savePat(processMat,floydsetin->lines, gridSize_f,true);
-    //floydsetin->halftoneUsingline_doubelSizeGrid(circle, halftone_mat,floydsetin->lines, gridSize_f*0.5,true);
-    //floydsetin->halftoneUsingLineWithErrorDiffusion(circle, halftone_mat,floydsetin->lines, gridSize_f,true);
-    floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(circleOrRect, halftone_mat, gridSize_f,true);
-    cv::flip(circleOrRect,circleOrRect,0);
-    cv::flip(halftone_mat,halftone_mat,0);
+            // Display and save CMYK channels
+            QLabel *cmykLabels[4] = {ui->lbOriginalImageDisplay_cORr, ui->lbOriginalImageDisplay_mORg, ui->lbOriginalImageDisplay_yORb, ui->lbOriginalImageDisplay_k};
+            for (int i = 0; i < 4; ++i) {
+                std::vector<Mat> channels = {Mat::zeros(ProcessImage.size(), CV_8UC1), Mat::zeros(ProcessImage.size(), CV_8UC1), Mat::zeros(ProcessImage.size(), CV_8UC1)};
+                if (i < 3) {
+                    channels[i] = vecCmykRgb[i]; // Set the respective channel
+                } else {
+                    channels = {vecCmykRgb[i], vecCmykRgb[i], vecCmykRgb[i]}; // Set all channels to K for black channel
+                }
+                Mat colorCmykChannel;
+                merge(channels, colorCmykChannel);
+                displayImage(vecCmykRgb[i], cmykLabels[i]);
+                QString fileName = QString("CMYK_%1.png").arg(i);
+                QString filePath = imageSplitDirPath + "/" + fileName;
+                cv::imwrite(filePath.toStdString(), vecCmykRgb[i]);
+            }
 
-    // 将线段位置信息保存为 .plt 文件
-    QString pltPath=imageSplitDirPath+"/line.plt";
-    floydsetin->saveAsPlt(pltPath.toStdString(), floydsetin->lines);
+        }else {
 
-
-
-
-
-    // Display and save CMYK channels
-    QLabel *cmykLabels[4] = {ui->lbOriginalImageDisplay_c, ui->lbOriginalImageDisplay_m, ui->lbOriginalImageDisplay_y, ui->lbOriginalImageDisplay_k};
-    for (int i = 0; i < 4; ++i) {
-        std::vector<Mat> channels = {Mat::zeros(ProcessImage.size(), CV_8UC1), Mat::zeros(ProcessImage.size(), CV_8UC1), Mat::zeros(ProcessImage.size(), CV_8UC1)};
-        if (i < 3) {
-            channels[i] = vecCmyk[i]; // Set the respective channel
-        } else {
-            channels = {vecCmyk[i], vecCmyk[i], vecCmyk[i]}; // Set all channels to K for black channel
+            // Display and save RGB channels
+            QLabel *rgbLabels[3] = {ui->lbOriginalImageDisplay_cORr, ui->lbOriginalImageDisplay_mORg, ui->lbOriginalImageDisplay_yORb};
+            for (int i = 0; i < 3; ++i) {
+                //std::vector<Mat> channels = {Mat::zeros(src.size(), CV_8UC1), Mat::zeros(src.size(), CV_8UC1), Mat::zeros(src.size(), CV_8UC1)};
+                //channels[i] = vecRgb[i]; // Set the respective channel
+                //Mat colorRgbChannel;
+                //merge(channels, colorRgbChannel);
+                displayImage(vecCmykRgb[i], rgbLabels[i]);
+                QString fileName = QString("RGB_%1.png").arg(i);
+                QString filePath = imageSplitDirPath + "/" + fileName;
+                cv::imwrite(filePath.toStdString(), vecCmykRgb[i]);
+            }
         }
-        Mat colorCmykChannel;
-        merge(channels, colorCmykChannel);
-        displayImage(vecCmyk[i], cmykLabels[i]);
-        QString fileName = QString("CMYK_%1.png").arg(i);
-        QString filePath = imageSplitDirPath + "/" + fileName;
-        cv::imwrite(filePath.toStdString(), vecCmyk[i]);
+
+
+//        QString halftone_fileName = QString("halftone_mat.png").arg(intColor);
+//        QString halftone_filePath = imageSplitDirPath + "/" + halftone_fileName;
+//        cv::imwrite(halftone_filePath.toStdString(),halftone_mat);
+
+
+        QString circle_fileName = QString("circleOrRect.png").arg(intColor);
+        QString circle_filePath = imageSplitDirPath + "/" + circle_fileName;
+        cv::imwrite(circle_filePath.toStdString(),circleOrRect);
+
     }
-
-
-
-    // Display and save RGB channels
-    QLabel *rgbLabels[3] = {ui->lbOriginalImageDisplay_b, ui->lbOriginalImageDisplay_g, ui->lbOriginalImageDisplay_r};
-    for (int i = 0; i < 3; ++i) {
-        //std::vector<Mat> channels = {Mat::zeros(src.size(), CV_8UC1), Mat::zeros(src.size(), CV_8UC1), Mat::zeros(src.size(), CV_8UC1)};
-        //channels[i] = vecRgb[i]; // Set the respective channel
-        //Mat colorRgbChannel;
-        //merge(channels, colorRgbChannel);
-        displayImage(vecRgb[i], rgbLabels[i]);
-        QString fileName = QString("RGB_%1.png").arg(i);
-        QString filePath = imageSplitDirPath + "/" + fileName;
-        cv::imwrite(filePath.toStdString(), vecRgb[i]);
-    }
-
-
-
-
-    //    displayImage(img_cmyk,ui->lbOriginalImageDisplay_cmyk);
-    QString fileName = QString("CMYK.png");
-    QString filePath = imageSplitDirPath + "/" + fileName;
-    cv::imwrite(filePath.toStdString(),img_cmyk);
-
-    QString halftone_fileName = "halftone_mat.png";
-    QString halftone_filePath = imageSplitDirPath + "/" + halftone_fileName;
-    cv::imwrite(halftone_filePath.toStdString(),halftone_mat);
-
-
-    QString circle_fileName = "circle_mat.png";
-    QString circle_filePath = imageSplitDirPath + "/" + circle_fileName;
-    cv::imwrite(circle_filePath.toStdString(),circleOrRect);
 
 }
 
@@ -326,19 +309,34 @@ void MainWindow::blackLayerChanged(bool checked) {
 
 
 
-void MainWindow::saveCurrentScheme(const QString &filePath) {
-    scheme->saveCurrentScheme(filePath, imagePath, ui->hSColorSaturation->value(), ui->cBblackLayering->isChecked(), ui->dSBpixelGridheight->value());
-}
-
 void MainWindow::loadScheme(const QString &filePath) {
-    double colorSaturation, pixelGridHeight;
-    bool blackLayer;
-    scheme->loadScheme(filePath, imagePath, colorSaturation, blackLayer, pixelGridHeight);
 
-    ui->hSColorSaturation->setValue(colorSaturation);
+
+    scheme->loadScheme(filePath, imagePath,grayLevel, halftoneGridType, DrawLnType, colorlayereType,
+                       pixelGridHeight,imageHeight, blackLayer,colorSaturationLIst,colorLayerList);
+
+    ui->hSColorSaturation->setValue(colorSaturationLIst[0]);
+    ui->lbColorSaturationDisplay->setText(QString::number(colorSaturationLIst[0]));
+    ui->dSBcAdjustmentCoefficient->setValue(colorSaturationLIst[1]);
+    ui->dSBmAdjustmentCoefficient->setValue(colorSaturationLIst[2]);
+    ui->dSByAdjustmentCoefficient->setValue(colorSaturationLIst[3]);
+    ui->dSBkAdjustmentCoefficient->setValue(colorSaturationLIst[4]);
+    ui->sbGrayLevel->setValue(grayLevel);
     ui->cBblackLayering->setChecked(blackLayer);
     ui->dSBpixelGridheight->setValue(pixelGridHeight);
     ui->leSchemeDameDisplay->setText(scheme->schemePath);
+    ui->cmbColorLayerdType->setCurrentText(colorlayereType);
+    ui->sBimageHeight->setValue(imageHeight);
+    ui->cbGridType->setCurrentIndex(halftoneGridType);
+    ui->cmbDrawLnType->setCurrentIndex(DrawLnType);
+
+    // 设置各个 QCheckBox 的状态
+    ui->cBSelectCorR->setCheckState(colorLayerList[0] ? Qt::Checked : Qt::Unchecked);
+    ui->cBSelectMorG->setCheckState(colorLayerList[1] ? Qt::Checked : Qt::Unchecked);
+    ui->cBSelectYorB->setCheckState(colorLayerList[2] ? Qt::Checked : Qt::Unchecked);
+    ui->cBSelectK->setCheckState(colorLayerList[3] ? Qt::Checked : Qt::Unchecked);
+
+
     ui->lbImageName->setText(imagePath);
     if (!imagePath.isEmpty()) {
         QImage img;
@@ -354,27 +352,58 @@ void MainWindow::loadScheme(const QString &filePath) {
 void MainWindow::saveAsScheme() {
     QString fileName = QFileDialog::getSaveFileName(this, "Save Scheme As", "", "Scheme Files (*.json)");
     if (!fileName.isEmpty()) {
-        scheme->saveCurrentScheme(fileName, imagePath, ui->hSColorSaturation->value(), ui->cBblackLayering->isChecked(), ui->dSBpixelGridheight->value());
+        QVector<double> colorSaturationList = {
+            static_cast<double>(ui->hSColorSaturation->value()),
+            ui->dSBcAdjustmentCoefficient->value(),
+            ui->dSBmAdjustmentCoefficient->value(),
+            ui->dSByAdjustmentCoefficient->value(),
+            ui->dSBkAdjustmentCoefficient->value()
+        };
+
+        QVector<bool> colorLayerList = {
+            ui->cBSelectCorR->isChecked(),
+            ui->cBSelectMorG->isChecked(),
+            ui->cBSelectYorB->isChecked(),
+            ui->cBSelectK->isChecked()
+        };
+
+        QVector <double> colorSaturationLIst{static_cast<double>(ui->hSColorSaturation->value(), ui->dSBcAdjustmentCoefficient->value(),ui->dSBmAdjustmentCoefficient->value(),ui->dSByAdjustmentCoefficient->value()),ui->dSBmAdjustmentCoefficient->value(),ui->dSBkAdjustmentCoefficient->value()};
+        scheme->saveCurrentScheme(fileName, imagePath, ui->sbGrayLevel->value(), halftoneGridType , ui->cmbDrawLnType->currentIndex()
+                                  , ui->cmbColorLayerdType->currentText()  ,ui->dSBpixelGridheight->value(),ui->sBimageHeight->value()
+                                  ,ui->cBblackLayering->isChecked(), colorSaturationLIst,colorLayerList);
         scheme->setSchemePath(fileName);
     }
     save_setting("IsStartWithScheme",ui->cbStartInScheme->isChecked());
     save_setting("schemePath",scheme->schemePath);
-    save_setting("imagePath",imagePath);
-    save_setting("cbColorLayerdType",ui->cBblackLayering->text());
-    save_setting("halftoneGridType",halftoneGridType);
+
 }
 
 void MainWindow::saveScheme() {
+
     if (!scheme->getSchemePath().isEmpty()) {
-        scheme->saveCurrentScheme(scheme->getSchemePath(), imagePath, ui->hSColorSaturation->value(), ui->cBblackLayering->isChecked(), ui->dSBpixelGridheight->value());
+        QVector<double> colorSaturationList = {
+            static_cast<double>(ui->hSColorSaturation->value()),
+            ui->dSBcAdjustmentCoefficient->value(),
+            ui->dSBmAdjustmentCoefficient->value(),
+            ui->dSByAdjustmentCoefficient->value(),
+            ui->dSBkAdjustmentCoefficient->value()
+        };
+
+        QVector<bool> colorLayerList = {
+            ui->cBSelectCorR->isChecked(),
+            ui->cBSelectMorG->isChecked(),
+            ui->cBSelectYorB->isChecked(),
+            ui->cBSelectK->isChecked()
+        };
+               scheme->saveCurrentScheme(scheme->getSchemePath(), imagePath,  ui->sbGrayLevel->value(),ui->cbGridType->currentIndex() , ui->cmbDrawLnType->currentIndex()
+                                  , ui->cmbColorLayerdType->currentText()  ,ui->dSBpixelGridheight->value(),ui->sBimageHeight->value()
+                                  ,ui->cBblackLayering->isChecked(), colorSaturationLIst,colorLayerList);
     } else {
         saveAsScheme();
     }
     save_setting("IsStartWithScheme",ui->cbStartInScheme->isChecked());
     save_setting("schemePath",scheme->schemePath);
-    save_setting("imagePath",imagePath);
-    save_setting("cbColorLayerdType",ui->cBblackLayering->text());
-    save_setting("halftoneGridType",halftoneGridType);
+
 }
 
 void MainWindow::openScheme() {
@@ -400,28 +429,13 @@ void MainWindow::newScheme() {
         //loadImage();  // 清空图像显示
 
         // 创建并保存空白方案文件
-        scheme->saveCurrentScheme(fileName, imagePath, 1.0, false, 1.0);
+        scheme->saveCurrentScheme(fileName, imagePath,1, 1, 1,"CMYK", 1.0,1.0,false,{1.0,1.0,1.0,1.0,1.0},{true,true,true,true});
         ui->leSchemeDameDisplay->setText(scheme->schemePath);
     }
 }
 
 
-void MainWindow::selcetLayre(int& layer){
 
-
-    if(ui->cBSelectC->isChecked()){layer=0;}
-
-    else if(ui->cBSelectM->isChecked()){layer=1;}
-
-    else if(ui->cBSelectY->isChecked()){layer=2;}
-
-    else if(ui->cBSelectK->isChecked()){layer=3;}
-
-    else {
-        layer=0;
-    }
-
-}
 
 
 
@@ -442,29 +456,6 @@ void MainWindow::save_setting(const QString &key, const QVariant &value) {
 void MainWindow::colorLayerChanged(){
 
 
-    if (ui->cmbColorLayerdType->currentText()=="CMYK"){
-
-        ui->lbOriginalImageDisplay_r->setEnabled(false);
-        ui->lbOriginalImageDisplay_g->setEnabled(false);
-        ui->lbOriginalImageDisplay_b->setEnabled(false);
-
-        ui->lbColor1->setText("C");
-        ui->lbColor2->setText("M");
-        ui->lbColor3->setText("Y");
-        ui->lbColor4->setText("K");
-
-    }else {
-
-        ui->lbOriginalImageDisplay_r->setEnabled(true);
-        ui->lbOriginalImageDisplay_g->setEnabled(true);
-        ui->lbOriginalImageDisplay_b->setEnabled(true);
-
-        ui->lbColor1->setText("R");
-        ui->lbColor2->setText("G");
-        ui->lbColor3->setText("B");
-    }
-
-
 }
 
 
@@ -478,9 +469,9 @@ void MainWindow::pBdisplayImage1(){
 
         namedWindow("image",cv::WINDOW_NORMAL);
         // 设置鼠标回调函数
-       //img=vecCmyk[2];
-       cv::setMouseCallback("image", onMouse, nullptr);
-       imshow("image",vecCmyk[0]);
+        //img=vecCmyk[2];
+        cv::setMouseCallback("image", onMouse, nullptr);
+        imshow("image",vecCmyk[0]);
     }else {
 
         namedWindow("image");
@@ -574,6 +565,34 @@ void MainWindow::onMouse(int event, int x, int y, int flags, void* userdata) {
 void MainWindow::halftoneGridTypeChanged(int index){
 
     halftoneGridType=index;
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+int MainWindow::selcetLayre(vector<int> &color){
+
+
+
+    if (ui->cBSelectCorR->isChecked()){          color.push_back(0);    }
+    else if (ui->cBSelectMorG->isChecked()) {    color.push_back(1);    }
+    else if (ui->cBSelectYorB->isChecked()) {    color.push_back(2);    }
+    else if (ui->cBSelectK->isChecked()) {    color.push_back(3);    }
+    else {
+
+        return -1;
+    }
+
 
 
 }

@@ -101,7 +101,7 @@ INCLUDEPATH += "G:/opencv_4.8.1_msvc/opencv/build/include"
 #    LIBS += -L"G:/opencv_4.8.1_msvc/opencv\build/x64/vc16/lib" -lopencv_world481
 #}
 
-LIBS += -L"G:/opencv_4.8.1_msvc/opencv\build/x64/vc16/lib" -lopencv_world481
+LIBS += -L"G:/opencv_4.8.1_msvc/opencv\build/x64/vc16/lib" -lopencv_world481d
 
 
 #LIBS += -L"G:\mingw64-potrace\lib"  -llibpotrace

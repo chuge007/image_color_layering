@@ -5,14 +5,18 @@
 #include <QString>
 #include <QJsonObject>
 
+#include <Qvector>
 class Scheme {
 public:
     Scheme();
     void setSchemePath(const QString &path);
     QString getSchemePath() const;
 
-    void saveCurrentScheme(const QString &filePath, const QString &imagePath, double colorSaturation, bool blackLayer, double pixelGridHeight);
-    void loadScheme(const QString &filePath, QString &imagePath, double &colorSaturation, bool &blackLayer, double &pixelGridHeight);
+    void saveCurrentScheme(const QString &filePath, const QString &imagePath,int grayLevel,int halftoneGridType,int DrawLnType,QString colorlayereType,
+                           double pixelGridHeight, double imageHeight,bool blackLayer,QVector <double> colorSaturationLIst,QVector <bool> colorlayerLIst);
+
+    void loadScheme(const QString &filePath, QString &imagePath,int &grayLevel,int &halftoneGridType,int &DrawLnType,QString &colorlayereType,
+                    double &pixelGridHeight, double &imageHeight,bool &blackLayer,QVector <double> &colorSaturationLIst,QVector <bool> &colorlayerLIst);
 
     void resetScheme();  // 新建方案方法
 
@@ -21,10 +25,7 @@ public:
     QString imagePath;
 
 
-private:
-    double colorSaturation;
-    bool blackLayer;
-    double pixelGridHeight;
+
 };
 
 #endif // SCHEME_H

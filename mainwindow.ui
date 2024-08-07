@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1073</width>
-    <height>843</height>
+    <width>807</width>
+    <height>782</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,10 +30,10 @@
      <string/>
     </property>
    </widget>
-   <widget class="QLabel" name="lbOriginalImageDisplay_c">
+   <widget class="QLabel" name="lbOriginalImageDisplay_cORr">
     <property name="geometry">
      <rect>
-      <x>325</x>
+      <x>365</x>
       <y>132</y>
       <width>138</width>
       <height>138</height>
@@ -49,13 +49,13 @@
      <number>0</number>
     </property>
    </widget>
-   <widget class="QLabel" name="lbOriginalImageDisplay_m">
+   <widget class="QLabel" name="lbOriginalImageDisplay_mORg">
     <property name="geometry">
      <rect>
-      <x>474</x>
+      <x>570</x>
       <y>132</y>
-      <width>138</width>
-      <height>138</height>
+      <width>141</width>
+      <height>141</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -65,10 +65,10 @@
      <string/>
     </property>
    </widget>
-   <widget class="QLabel" name="lbOriginalImageDisplay_y">
+   <widget class="QLabel" name="lbOriginalImageDisplay_yORb">
     <property name="geometry">
      <rect>
-      <x>325</x>
+      <x>365</x>
       <y>318</y>
       <width>138</width>
       <height>138</height>
@@ -84,7 +84,7 @@
    <widget class="QLabel" name="lbOriginalImageDisplay_k">
     <property name="geometry">
      <rect>
-      <x>474</x>
+      <x>570</x>
       <y>318</y>
       <width>138</width>
       <height>138</height>
@@ -100,46 +100,46 @@
    <widget class="QLabel" name="lbColor1">
     <property name="geometry">
      <rect>
-      <x>330</x>
+      <x>370</x>
       <y>280</y>
       <width>81</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>C</string>
+     <string>C(R)</string>
     </property>
    </widget>
    <widget class="QLabel" name="lbColor2">
     <property name="geometry">
      <rect>
-      <x>480</x>
+      <x>570</x>
       <y>280</y>
       <width>81</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>M</string>
+     <string>M(G)</string>
     </property>
    </widget>
    <widget class="QLabel" name="lbColor3">
     <property name="geometry">
      <rect>
-      <x>330</x>
+      <x>370</x>
       <y>470</y>
       <width>81</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>Y</string>
+     <string>Y(B)</string>
     </property>
    </widget>
    <widget class="QLabel" name="lbColor4">
     <property name="geometry">
      <rect>
-      <x>480</x>
+      <x>570</x>
       <y>470</y>
       <width>81</width>
       <height>16</height>
@@ -153,7 +153,7 @@
     <property name="geometry">
      <rect>
       <x>180</x>
-      <y>470</y>
+      <y>590</y>
       <width>128</width>
       <height>32</height>
      </rect>
@@ -182,7 +182,7 @@ border: 1px solid black;</string>
    <widget class="QDoubleSpinBox" name="dSBcAdjustmentCoefficient">
     <property name="geometry">
      <rect>
-      <x>350</x>
+      <x>400</x>
       <y>280</y>
       <width>62</width>
       <height>22</height>
@@ -192,7 +192,7 @@ border: 1px solid black;</string>
    <widget class="QDoubleSpinBox" name="dSBmAdjustmentCoefficient">
     <property name="geometry">
      <rect>
-      <x>500</x>
+      <x>600</x>
       <y>280</y>
       <width>62</width>
       <height>22</height>
@@ -202,7 +202,7 @@ border: 1px solid black;</string>
    <widget class="QDoubleSpinBox" name="dSByAdjustmentCoefficient">
     <property name="geometry">
      <rect>
-      <x>350</x>
+      <x>400</x>
       <y>470</y>
       <width>62</width>
       <height>22</height>
@@ -212,7 +212,7 @@ border: 1px solid black;</string>
    <widget class="QDoubleSpinBox" name="dSBkAdjustmentCoefficient">
     <property name="geometry">
      <rect>
-      <x>500</x>
+      <x>590</x>
       <y>470</y>
       <width>62</width>
       <height>22</height>
@@ -286,7 +286,7 @@ border: 1px solid black;</string>
    <widget class="QCheckBox" name="cbStartInScheme">
     <property name="geometry">
      <rect>
-      <x>801</x>
+      <x>700</x>
       <y>24</y>
       <width>107</width>
       <height>16</height>
@@ -350,95 +350,12 @@ border: 1px solid black;</string>
      </rect>
     </property>
    </widget>
-   <widget class="QPushButton" name="pBexportVectorDiagram">
-    <property name="geometry">
-     <rect>
-      <x>660</x>
-      <y>420</y>
-      <width>128</width>
-      <height>32</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>导出矢量图</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="pBexportGrayScaleImage">
-    <property name="geometry">
-     <rect>
-      <x>860</x>
-      <y>420</y>
-      <width>128</width>
-      <height>32</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>导出灰度图</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="lbOriginalImageDisplay_r">
-    <property name="geometry">
-     <rect>
-      <x>325</x>
-      <y>132</y>
-      <width>138</width>
-      <height>138</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color:rgb(74, 74, 74)</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="margin">
-     <number>0</number>
-    </property>
-   </widget>
-   <widget class="QLabel" name="lbOriginalImageDisplay_g">
-    <property name="geometry">
-     <rect>
-      <x>475</x>
-      <y>132</y>
-      <width>138</width>
-      <height>138</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color:rgb(74, 74, 74)</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="margin">
-     <number>0</number>
-    </property>
-   </widget>
-   <widget class="QLabel" name="lbOriginalImageDisplay_b">
-    <property name="geometry">
-     <rect>
-      <x>325</x>
-      <y>322</y>
-      <width>138</width>
-      <height>138</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color:rgb(74, 74, 74)</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="margin">
-     <number>0</number>
-    </property>
-   </widget>
    <widget class="QGroupBox" name="groupBox">
     <property name="geometry">
      <rect>
-      <x>630</x>
-      <y>140</y>
-      <width>421</width>
+      <x>10</x>
+      <y>490</y>
+      <width>701</width>
       <height>81</height>
      </rect>
     </property>
@@ -453,6 +370,9 @@ border: 1px solid black;</string>
        <width>61</width>
        <height>22</height>
       </rect>
+     </property>
+     <property name="maximum">
+      <number>1000000000</number>
      </property>
     </widget>
     <widget class="QLabel" name="label_8">
@@ -490,20 +410,29 @@ border: 1px solid black;</string>
        <height>22</height>
       </rect>
      </property>
+     <property name="decimals">
+      <number>3</number>
+     </property>
      <property name="minimum">
-      <double>2.000000000000000</double>
+      <double>0.000000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>1000000000000000019884624838656.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.001000000000000</double>
      </property>
      <property name="value">
-      <double>2.000000000000000</double>
+      <double>0.100000000000000</double>
      </property>
     </widget>
     <widget class="QCheckBox" name="cBblackLayering">
      <property name="geometry">
       <rect>
-       <x>210</x>
+       <x>370</x>
        <y>50</y>
-       <width>121</width>
-       <height>16</height>
+       <width>81</width>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -513,7 +442,7 @@ border: 1px solid black;</string>
     <widget class="QComboBox" name="cmbColorLayerdType">
      <property name="geometry">
       <rect>
-       <x>290</x>
+       <x>270</x>
        <y>20</y>
        <width>71</width>
        <height>21</height>
@@ -533,7 +462,7 @@ border: 1px solid black;</string>
     <widget class="QLabel" name="label_10">
      <property name="geometry">
       <rect>
-       <x>210</x>
+       <x>200</x>
        <y>20</y>
        <width>54</width>
        <height>21</height>
@@ -543,63 +472,102 @@ border: 1px solid black;</string>
       <string>分层类型：</string>
      </property>
     </widget>
+    <widget class="QLabel" name="label">
+     <property name="geometry">
+      <rect>
+       <x>160</x>
+       <y>20</y>
+       <width>31</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>mm</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_2">
+     <property name="geometry">
+      <rect>
+       <x>160</x>
+       <y>50</y>
+       <width>31</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>mm</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="cmbDrawLnType">
+     <property name="geometry">
+      <rect>
+       <x>270</x>
+       <y>50</y>
+       <width>71</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <item>
+      <property name="text">
+       <string>横线</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>竖线</string>
+      </property>
+     </item>
+    </widget>
+    <widget class="QLabel" name="label_11">
+     <property name="geometry">
+      <rect>
+       <x>200</x>
+       <y>50</y>
+       <width>54</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>直线类型：</string>
+     </property>
+    </widget>
+    <widget class="QSpinBox" name="sbGrayLevel">
+     <property name="geometry">
+      <rect>
+       <x>600</x>
+       <y>50</y>
+       <width>61</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="minimum">
+      <number>0</number>
+     </property>
+     <property name="maximum">
+      <number>256</number>
+     </property>
+     <property name="value">
+      <number>0</number>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_14">
+     <property name="geometry">
+      <rect>
+       <x>540</x>
+       <y>50</y>
+       <width>54</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>灰度层级：</string>
+     </property>
+    </widget>
    </widget>
-   <widget class="QGroupBox" name="groupBox_3">
+   <widget class="QCheckBox" name="cBSelectCorR">
     <property name="geometry">
      <rect>
-      <x>630</x>
-      <y>260</y>
-      <width>421</width>
-      <height>71</height>
-     </rect>
-    </property>
-    <property name="title">
-     <string>导出灰度图设置</string>
-    </property>
-    <widget class="QRadioButton" name="rBrandomSorting">
-     <property name="geometry">
-      <rect>
-       <x>130</x>
-       <y>30</y>
-       <width>89</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>随机排序</string>
-     </property>
-    </widget>
-    <widget class="QRadioButton" name="rBsortNeatly">
-     <property name="geometry">
-      <rect>
-       <x>30</x>
-       <y>30</y>
-       <width>89</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>整齐排序</string>
-     </property>
-    </widget>
-    <widget class="QRadioButton" name="rBaggregateSort">
-     <property name="geometry">
-      <rect>
-       <x>230</x>
-       <y>30</y>
-       <width>89</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>聚集排序</string>
-     </property>
-    </widget>
-   </widget>
-   <widget class="QCheckBox" name="cBSelectC">
-    <property name="geometry">
-     <rect>
-      <x>440</x>
+      <x>480</x>
       <y>140</y>
       <width>71</width>
       <height>16</height>
@@ -609,10 +577,10 @@ border: 1px solid black;</string>
      <string/>
     </property>
    </widget>
-   <widget class="QCheckBox" name="cBSelectM">
+   <widget class="QCheckBox" name="cBSelectMorG">
     <property name="geometry">
      <rect>
-      <x>590</x>
+      <x>680</x>
       <y>140</y>
       <width>71</width>
       <height>16</height>
@@ -622,10 +590,10 @@ border: 1px solid black;</string>
      <string/>
     </property>
    </widget>
-   <widget class="QCheckBox" name="cBSelectY">
+   <widget class="QCheckBox" name="cBSelectYorB">
     <property name="geometry">
      <rect>
-      <x>440</x>
+      <x>480</x>
       <y>330</y>
       <width>71</width>
       <height>16</height>
@@ -638,47 +606,8 @@ border: 1px solid black;</string>
    <widget class="QCheckBox" name="cBSelectK">
     <property name="geometry">
      <rect>
-      <x>590</x>
+      <x>680</x>
       <y>330</y>
-      <width>71</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="cBSelectG">
-    <property name="geometry">
-     <rect>
-      <x>590</x>
-      <y>140</y>
-      <width>71</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="cBSelectB">
-    <property name="geometry">
-     <rect>
-      <x>440</x>
-      <y>330</y>
-      <width>71</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="cBSelectR">
-    <property name="geometry">
-     <rect>
-      <x>440</x>
-      <y>140</y>
       <width>71</width>
       <height>16</height>
      </rect>
@@ -691,7 +620,7 @@ border: 1px solid black;</string>
     <property name="geometry">
      <rect>
       <x>70</x>
-      <y>421</y>
+      <y>430</y>
       <width>191</width>
       <height>31</height>
      </rect>
@@ -703,7 +632,7 @@ border: 1px solid black;</string>
      <number>0</number>
     </property>
     <property name="value">
-     <number>10</number>
+     <number>0</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
@@ -713,7 +642,7 @@ border: 1px solid black;</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>430</y>
+      <y>440</y>
       <width>54</width>
       <height>12</height>
      </rect>
@@ -726,7 +655,7 @@ border: 1px solid black;</string>
     <property name="geometry">
      <rect>
       <x>270</x>
-      <y>420</y>
+      <y>430</y>
       <width>54</width>
       <height>31</height>
      </rect>
@@ -738,8 +667,8 @@ border: 1px solid black;</string>
    <widget class="QComboBox" name="cbGridType">
     <property name="geometry">
      <rect>
-      <x>70</x>
-      <y>470</y>
+      <x>60</x>
+      <y>590</y>
       <width>71</width>
       <height>31</height>
      </rect>
@@ -759,7 +688,7 @@ border: 1px solid black;</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>472</y>
+      <y>590</y>
       <width>54</width>
       <height>21</height>
      </rect>
@@ -797,10 +726,10 @@ border: 1px solid black;</string>
    <widget class="QPushButton" name="pBdisplayImage1">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>160</y>
-      <width>131</width>
-      <height>101</height>
+      <x>365</x>
+      <y>250</y>
+      <width>138</width>
+      <height>21</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -814,10 +743,10 @@ border: 1px solid black;</string>
    <widget class="QPushButton" name="pBdisplayImage2">
     <property name="geometry">
      <rect>
-      <x>480</x>
-      <y>160</y>
-      <width>131</width>
-      <height>101</height>
+      <x>570</x>
+      <y>250</y>
+      <width>141</width>
+      <height>21</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -831,10 +760,10 @@ border: 1px solid black;</string>
    <widget class="QPushButton" name="pBdisplayImage3">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>350</y>
-      <width>131</width>
-      <height>101</height>
+      <x>365</x>
+      <y>440</y>
+      <width>138</width>
+      <height>16</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -848,15 +777,54 @@ border: 1px solid black;</string>
    <widget class="QPushButton" name="pBdisplayImage4">
     <property name="geometry">
      <rect>
-      <x>480</x>
-      <y>350</y>
-      <width>131</width>
-      <height>101</height>
+      <x>570</x>
+      <y>440</y>
+      <width>138</width>
+      <height>16</height>
      </rect>
     </property>
     <property name="styleSheet">
      <string notr="true">background-color: rgba(255, 255, 255, 0);
 border: 1px solid black;</string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>380</x>
+      <y>510</y>
+      <width>71</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>最小线间距：</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>550</x>
+      <y>510</y>
+      <width>21</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>mm</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="lbMinLineDs">
+    <property name="geometry">
+     <rect>
+      <x>460</x>
+      <y>510</y>
+      <width>81</width>
+      <height>20</height>
+     </rect>
     </property>
     <property name="text">
      <string/>
@@ -868,7 +836,7 @@ border: 1px solid black;</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1073</width>
+     <width>807</width>
      <height>23</height>
     </rect>
    </property>
