@@ -58,7 +58,7 @@ public:
     QSpinBox *sBimageHeight;
     QLabel *label_8;
     QLabel *label_9;
-    QDoubleSpinBox *dSBpixelGridheight;
+    QDoubleSpinBox *dsbLineDistance;
     QCheckBox *cBblackLayering;
     QComboBox *cmbColorLayerdType;
     QLabel *label_10;
@@ -83,9 +83,6 @@ public:
     QPushButton *pBdisplayImage2;
     QPushButton *pBdisplayImage3;
     QPushButton *pBdisplayImage4;
-    QLabel *label_3;
-    QLabel *label_4;
-    QLabel *lbMinLineDs;
     QMenuBar *menuBar;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
@@ -197,14 +194,14 @@ public:
         label_9 = new QLabel(groupBox);
         label_9->setObjectName(QString::fromUtf8("label_9"));
         label_9->setGeometry(QRect(10, 50, 91, 21));
-        dSBpixelGridheight = new QDoubleSpinBox(groupBox);
-        dSBpixelGridheight->setObjectName(QString::fromUtf8("dSBpixelGridheight"));
-        dSBpixelGridheight->setGeometry(QRect(90, 50, 62, 22));
-        dSBpixelGridheight->setDecimals(3);
-        dSBpixelGridheight->setMinimum(0.000000000000000);
-        dSBpixelGridheight->setMaximum(1000000000000000019884624838656.000000000000000);
-        dSBpixelGridheight->setSingleStep(0.001000000000000);
-        dSBpixelGridheight->setValue(0.100000000000000);
+        dsbLineDistance = new QDoubleSpinBox(groupBox);
+        dsbLineDistance->setObjectName(QString::fromUtf8("dsbLineDistance"));
+        dsbLineDistance->setGeometry(QRect(90, 50, 62, 22));
+        dsbLineDistance->setDecimals(3);
+        dsbLineDistance->setMinimum(0.000000000000000);
+        dsbLineDistance->setMaximum(1000000000000000019884624838656.000000000000000);
+        dsbLineDistance->setSingleStep(0.001000000000000);
+        dsbLineDistance->setValue(0.100000000000000);
         cBblackLayering = new QCheckBox(groupBox);
         cBblackLayering->setObjectName(QString::fromUtf8("cBblackLayering"));
         cBblackLayering->setGeometry(QRect(370, 50, 81, 21));
@@ -232,11 +229,13 @@ public:
         label_11->setGeometry(QRect(200, 50, 54, 21));
         sbGrayLevel = new QSpinBox(groupBox);
         sbGrayLevel->setObjectName(QString::fromUtf8("sbGrayLevel"));
-        sbGrayLevel->setGeometry(QRect(600, 50, 61, 22));
+        sbGrayLevel->setGeometry(QRect(430, 20, 61, 22));
+        sbGrayLevel->setMinimum(0);
         sbGrayLevel->setMaximum(256);
+        sbGrayLevel->setValue(0);
         label_14 = new QLabel(groupBox);
         label_14->setObjectName(QString::fromUtf8("label_14"));
-        label_14->setGeometry(QRect(540, 50, 54, 21));
+        label_14->setGeometry(QRect(370, 20, 54, 21));
         cBSelectCorR = new QCheckBox(centralWidget);
         cBSelectCorR->setObjectName(QString::fromUtf8("cBSelectCorR"));
         cBSelectCorR->setGeometry(QRect(480, 140, 71, 16));
@@ -296,15 +295,6 @@ public:
         pBdisplayImage4->setGeometry(QRect(570, 440, 138, 16));
         pBdisplayImage4->setStyleSheet(QString::fromUtf8("background-color: rgba(255, 255, 255, 0);\n"
 "border: 1px solid black;"));
-        label_3 = new QLabel(centralWidget);
-        label_3->setObjectName(QString::fromUtf8("label_3"));
-        label_3->setGeometry(QRect(380, 510, 71, 16));
-        label_4 = new QLabel(centralWidget);
-        label_4->setObjectName(QString::fromUtf8("label_4"));
-        label_4->setGeometry(QRect(550, 510, 21, 21));
-        lbMinLineDs = new QLabel(centralWidget);
-        lbMinLineDs->setObjectName(QString::fromUtf8("lbMinLineDs"));
-        lbMinLineDs->setGeometry(QRect(460, 510, 81, 20));
         MainWindow->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(MainWindow);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
@@ -344,7 +334,7 @@ public:
         pBsaveSchemeAs->setText(QApplication::translate("MainWindow", "\344\277\235\345\255\230\344\270\272", nullptr));
         groupBox->setTitle(QApplication::translate("MainWindow", "\351\200\232\347\224\250\350\256\276\347\275\256", nullptr));
         label_8->setText(QApplication::translate("MainWindow", "\345\233\276\347\211\207\351\253\230\345\272\246\357\274\232", nullptr));
-        label_9->setText(QApplication::translate("MainWindow", "\345\203\217\347\264\240\347\275\221\346\240\274\351\253\230\345\272\246\357\274\232", nullptr));
+        label_9->setText(QApplication::translate("MainWindow", "\347\272\277\351\227\264\350\267\235\357\274\232", nullptr));
         cBblackLayering->setText(QApplication::translate("MainWindow", "\351\273\221\350\211\262\345\210\206\345\261\202\346\254\241", nullptr));
         cmbColorLayerdType->setItemText(0, QApplication::translate("MainWindow", "CMYK", nullptr));
         cmbColorLayerdType->setItemText(1, QApplication::translate("MainWindow", "RGB", nullptr));
@@ -373,9 +363,6 @@ public:
         pBdisplayImage2->setText(QString());
         pBdisplayImage3->setText(QString());
         pBdisplayImage4->setText(QString());
-        label_3->setText(QApplication::translate("MainWindow", "\346\234\200\345\260\217\347\272\277\351\227\264\350\267\235\357\274\232", nullptr));
-        label_4->setText(QApplication::translate("MainWindow", "mm", nullptr));
-        lbMinLineDs->setText(QString());
     } // retranslateUi
 
 };

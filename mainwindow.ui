@@ -398,10 +398,10 @@ border: 1px solid black;</string>
       </rect>
      </property>
      <property name="text">
-      <string>像素网格高度：</string>
+      <string>线间距：</string>
      </property>
     </widget>
-    <widget class="QDoubleSpinBox" name="dSBpixelGridheight">
+    <widget class="QDoubleSpinBox" name="dsbLineDistance">
      <property name="geometry">
       <rect>
        <x>90</x>
@@ -534,8 +534,8 @@ border: 1px solid black;</string>
     <widget class="QSpinBox" name="sbGrayLevel">
      <property name="geometry">
       <rect>
-       <x>600</x>
-       <y>50</y>
+       <x>430</x>
+       <y>20</y>
        <width>61</width>
        <height>22</height>
       </rect>
@@ -553,8 +553,8 @@ border: 1px solid black;</string>
     <widget class="QLabel" name="label_14">
      <property name="geometry">
       <rect>
-       <x>540</x>
-       <y>50</y>
+       <x>370</x>
+       <y>20</y>
        <width>54</width>
        <height>21</height>
       </rect>
@@ -786,45 +786,6 @@ border: 1px solid black;</string>
     <property name="styleSheet">
      <string notr="true">background-color: rgba(255, 255, 255, 0);
 border: 1px solid black;</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_3">
-    <property name="geometry">
-     <rect>
-      <x>380</x>
-      <y>510</y>
-      <width>71</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>最小线间距：</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_4">
-    <property name="geometry">
-     <rect>
-      <x>550</x>
-      <y>510</y>
-      <width>21</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>mm</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="lbMinLineDs">
-    <property name="geometry">
-     <rect>
-      <x>460</x>
-      <y>510</y>
-      <width>81</width>
-      <height>20</height>
-     </rect>
     </property>
     <property name="text">
      <string/>

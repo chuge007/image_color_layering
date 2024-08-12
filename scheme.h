@@ -13,10 +13,10 @@ public:
     QString getSchemePath() const;
 
     void saveCurrentScheme(const QString &filePath, const QString &imagePath,int grayLevel,int halftoneGridType,int DrawLnType,QString colorlayereType,
-                           double pixelGridHeight, double imageHeight,bool blackLayer,QVector <double> colorSaturationLIst,QVector <bool> colorlayerLIst);
+                           double dsbLineDistance, double imageHeight,bool blackLayer,QVector <double> colorSaturationLIst,QVector <bool> colorlayerLIst);
 
     void loadScheme(const QString &filePath, QString &imagePath,int &grayLevel,int &halftoneGridType,int &DrawLnType,QString &colorlayereType,
-                    double &pixelGridHeight, double &imageHeight,bool &blackLayer,QVector <double> &colorSaturationLIst,QVector <bool> &colorlayerLIst);
+                    double &dsbLineDistance, double &imageHeight,bool &blackLayer,QVector <double> &colorSaturationLIst,QVector <bool> &colorlayerLIst);
 
     void resetScheme();  // 新建方案方法
 

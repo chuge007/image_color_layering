@@ -14,11 +14,11 @@ QString Scheme::getSchemePath() const {
 }
 
 void Scheme::saveCurrentScheme(const QString &filePath, const QString &imagePath,int grayLevel,int halftoneGridType,int DrawLnType,QString colorlayereType,
-                               double pixelGridHeight, double imageHeight,bool blackLayer,QVector <double> colorSaturationLIst ,QVector <bool> colorlayerLIst) {
+                               double dsbLineDistance, double imageHeight,bool blackLayer,QVector <double> colorSaturationLIst ,QVector <bool> colorlayerLIst) {
     QJsonObject scheme;
     scheme["imagePath"] = imagePath;
     scheme["blackLayer"] = blackLayer;
-    scheme["pixelGridHeight"] = pixelGridHeight;
+    scheme["dsbLineDistance"] = dsbLineDistance;
     scheme["halftoneGridType"] = halftoneGridType;
     scheme["gridImageSort"] = DrawLnType;
     scheme["colorlayereType"] = colorlayereType;
@@ -42,7 +42,7 @@ void Scheme::saveCurrentScheme(const QString &filePath, const QString &imagePath
 }
 
 void Scheme::loadScheme(const QString &filePath, QString &imagePath,int &grayLevel ,int &halftoneGridType,int &DrawLnType,QString &colorlayereType,
-                        double &pixelGridHeight, double &imageHeight,bool &blackLayer,QVector <double> &colorSaturationLIst ,QVector <bool> &colorlayerLIst) {
+                        double &dsbLineDistance, double &imageHeight,bool &blackLayer,QVector <double> &colorSaturationLIst ,QVector <bool> &colorlayerLIst) {
     QFile file(filePath);
     if (file.open(QIODevice::ReadOnly)) {
         QJsonObject scheme = QJsonDocument::fromJson(file.readAll()).object();
@@ -56,7 +56,7 @@ void Scheme::loadScheme(const QString &filePath, QString &imagePath,int &grayLev
 
 
         imageHeight = scheme["imageHeight"].toDouble();
-        pixelGridHeight = scheme["pixelGridHeight"].toDouble();
+        dsbLineDistance = scheme["dsbLineDistance"].toDouble();
         blackLayer = scheme["blackLayer"].toBool();
 
         for (int i=0;i<5;i++) {

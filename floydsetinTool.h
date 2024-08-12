@@ -15,8 +15,8 @@ using namespace std;
 class floydsetinTool{
 
 struct LineSegment {
-    Point start;
-    Point end;
+    Point2d start;
+    Point2d end;
 };
 
 public:
@@ -59,19 +59,19 @@ public:
 
     void halftoneUsingCircles(Mat& src, Mat& dst, int cell_size);
 
-    void halftoneUsingRect_doubelSizeGrid(Mat& src, Mat& dst, float cell_size, int num_levels);
+    void halftoneUsingRect_doubelSizeGrid(Mat& src, Mat& dst, double cell_size, int num_levels);
 
-    void halftoneUsingCircles_doubelSizeGrid(Mat& src, Mat& dst, float cell_size,int num_levels);
+    void halftoneUsingCircles_doubelSizeGrid(Mat& src, Mat& dst, double cell_size,int num_levels);
 
-    void halftoneUsingline_doubelSizeGrid(Mat& src, Mat& dst,vector<LineSegment>& lines, float cell_size, bool horizontal_lines = true);
+    void halftoneUsingline_doubelSizeGrid(Mat& src, Mat& dst,vector<LineSegment>& lines, double cell_size, bool horizontal_lines = true);
 
-    void halftoneUsingline_doubelSizeGrid_savePat(Mat& src, vector<LineSegment>& lines, float cell_size, bool horizontal_lines = true);
+    void halftoneUsingline_doubelSizeGrid_savePat(Mat& src, vector<LineSegment>& lines, double cell_size, bool horizontal_lines = true);
 
-    void halftoneUsingLineWithErrorDiffusion(Mat& src, Mat& dst,vector<LineSegment>& lines, float cell_size, bool horizontal_lines = true);
+    void halftoneUsingLineWithErrorDiffusion(Mat& src, Mat& dst,vector<LineSegment>& lines, double cell_size, bool horizontal_lines = true);
 
-    void halftoneWithCirclesDoubelSizeGridTest(Mat& src, Mat& dst, float cell_size, int density_factor);
+    void halftoneWithCirclesDoubelSizeGridTest(Mat& src, Mat& dst, double cell_size, int density_factor);
 
-    void halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst,float &line_distance,float imageHeight ,float cell_size,int grayLevel, bool horizontal_lines = true);
+    void halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst,double &line_distance,double imageHeight ,double LineDistance,int grayLevel, bool horizontal_lines = true);
 
     void saveAsPlt(const string& filename, const vector<LineSegment>& lines);
 

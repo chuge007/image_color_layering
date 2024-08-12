@@ -90,7 +90,7 @@ void ImProcessTool::resizeImageWithLanczos4(const cv::Mat& inputImage, cv::Mat& 
 
         // 计算新的尺寸，保持纵横比
         int newWidth = static_cast<int>(inputImage.cols * scaleFactor);
-        int newHeight = targetHeight; // 直接使用目标高度
+        int newHeight = static_cast<int>(targetHeight); // 直接使用目标高度
 
         // 使用 Lanczos4 插值方法进行缩放
         cv::resize(inputImage, outputImage, cv::Size(newWidth, newHeight), 0, 0, cv::INTER_LANCZOS4);
