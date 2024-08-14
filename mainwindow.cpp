@@ -118,9 +118,9 @@ void MainWindow::analyzeImage() {
     double imageHeight=ui->sBimageHeight->value();
     int   grayLevel=ui->sbGrayLevel->value();
 
-    double lengthDistanceCtrol=lineDistance_f*grayLevel;
+    double pixelHeight=lineDistance_f*grayLevel;
 
-    qDebug()<<"lengthDistanceCtrol   "<<(lengthDistanceCtrol);
+    qDebug()<<"pixelHeight   "<<(pixelHeight);
 
     double density_factor=imageHeight/(lineDistance_f*grayLevel);
 
@@ -184,14 +184,14 @@ void MainWindow::analyzeImage() {
             //floydsetin->halftoneUsingline_doubelSizeGrid(circle, halftone_mat,floydsetin->lines, gridSize_f*0.5,true);
             //floydsetin->halftoneUsingLineWithErrorDiffusion(circle, halftone_mat,floydsetin->lines, gridSize_f,true);
         }
-        floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(processMat, halftoneOut,lineDisdance,imageHeight,lengthDistanceCtrol,grayLevel,DrawLntype);
+        floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(processMat, halftoneOut,lineDisdance,imageHeight,pixelHeight,grayLevel,DrawLntype);
         cv::flip(processMat,processMat,0);
         cv::flip(halftoneOut,halftoneOut,0);
 
         // 将线段位置信息保存为 .plt 文件
         floydsetin->mergeLineSegments(floydsetin->lines,floydsetin->linesSegments,DrawLntype);
         QString pltPath=imageSplitDirPath+QString("/LayerColor %1 .plt").arg(intColor);
-        floydsetin->saveAsPlt(pltPath.toStdString(), floydsetin->lines);
+        floydsetin->saveAsPlt(pltPath.toStdString(), floydsetin->linesSegments);
 
 
         if (ui->cmbColorLayerdType->currentText()=="CMYK"){

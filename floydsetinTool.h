@@ -19,6 +19,14 @@ struct LineSegment {
     Point2d end;
 };
 
+enum direction {
+    R = 1,  // right
+    D,      // down
+    L,      // left
+    U,      // up
+    END     // 结束标志
+};
+
 public:
     // 保存线段位置信息
     vector<LineSegment> lines;
