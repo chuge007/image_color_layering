@@ -597,7 +597,7 @@ border: 1px solid black;</string>
       </rect>
      </property>
      <property name="text">
-      <string>高数据模式</string>
+      <string>高密度模式</string>
      </property>
      <property name="checked">
       <bool>true</bool>

@@ -678,36 +678,36 @@ void floydsetinTool::floydsetin_16(Mat img , int m)
 
 void floydsetinTool::halftone( Mat& src, Mat& dst, int cell_size) {
     // 将图像转换为灰度图
-        Mat gray;
-        cvtColor(src, gray, COLOR_BGR2GRAY);
+    Mat gray;
+    cvtColor(src, gray, COLOR_BGR2GRAY);
 
-        // 获取图像尺寸
-        int h = gray.rows;
-        int w = gray.cols;
+    // 获取图像尺寸
+    int h = gray.rows;
+    int w = gray.cols;
 
-        // 创建一个与原图像相同大小的空白图像
-        dst = Mat::zeros(h, w, CV_8UC1);
+    // 创建一个与原图像相同大小的空白图像
+    dst = Mat::zeros(h, w, CV_8UC1);
 
-        // 遍历图像，分割成网格
-        for (int i = 0; i < h; i += cell_size) {
-            for (int j = 0; j < w; j += cell_size) {
-                // 确保ROI不会超出图像边界
-                int grid_width = min(cell_size, w - j);
-                int grid_height = min(cell_size, h - i);
+    // 遍历图像，分割成网格
+    for (int i = 0; i < h; i += cell_size) {
+        for (int j = 0; j < w; j += cell_size) {
+            // 确保ROI不会超出图像边界
+            int grid_width = min(cell_size, w - j);
+            int grid_height = min(cell_size, h - i);
 
-                // 获取当前网格中的像素值
-                Rect grid(j, i, grid_width, grid_height);
-                Mat roi = gray(grid);
-                Scalar avg_color = mean(roi);
+            // 获取当前网格中的像素值
+            Rect grid(j, i, grid_width, grid_height);
+            Mat roi = gray(grid);
+            Scalar avg_color = mean(roi);
 
-                // 根据平均亮度决定网格中填充的点数
-                int radius = static_cast<int>((avg_color[0] / 255.0) * (min(grid_width, grid_height) / 2));
-                Point center(j + grid_width / 2, i + grid_height / 2);
+            // 根据平均亮度决定网格中填充的点数
+            int radius = static_cast<int>((avg_color[0] / 255.0) * (min(grid_width, grid_height) / 2));
+            Point center(j + grid_width / 2, i + grid_height / 2);
 
-                // 绘制圆形
-                circle(dst, center, radius, Scalar(255), FILLED);
-            }
+            // 绘制圆形
+            circle(dst, center, radius, Scalar(255), FILLED);
         }
+    }
 }
 
 
@@ -987,76 +987,76 @@ void floydsetinTool::halftoneUsingCircles_doubelSizeGrid(Mat& src, Mat& dst, dou
 void floydsetinTool::halftoneWithCirclesDoubelSizeGridTest(Mat& src, Mat& dst, double cell_size, int density_factor) {
     Mat gray;
 
-        // 检查图像的通道数，如果是彩色图像则转换为灰度图
-        if (src.channels() == 3) {
-            cvtColor(src, gray, COLOR_BGR2GRAY);
-        } else {
-            gray = src;
-        }
+    // 检查图像的通道数，如果是彩色图像则转换为灰度图
+    if (src.channels() == 3) {
+        cvtColor(src, gray, COLOR_BGR2GRAY);
+    } else {
+        gray = src;
+    }
 
-        // 创建一个与原图像相同大小的空白图像
-        dst = Mat::zeros(gray.size(), CV_8UC3);
+    // 创建一个与原图像相同大小的空白图像
+    dst = Mat::zeros(gray.size(), CV_8UC3);
 
-        // 获取图像尺寸
-        int rows = gray.rows;
-        int cols = gray.cols;
+    // 获取图像尺寸
+    int rows = gray.rows;
+    int cols = gray.cols;
 
-        // 定义Jarvis, Judice, and Ninke扩散矩阵
-        vector<vector<double>> diffusion_matrix = {
-            {0, 0, 0, 7.0/48, 5.0/48},
-            {3.0/48, 5.0/48, 7.0/48, 5.0/48, 3.0/48},
-            {1.0/48, 3.0/48, 5.0/48, 3.0/48, 1.0/48}
-        };
+    // 定义Jarvis, Judice, and Ninke扩散矩阵
+    vector<vector<double>> diffusion_matrix = {
+        {0, 0, 0, 7.0/48, 5.0/48},
+        {3.0/48, 5.0/48, 7.0/48, 5.0/48, 3.0/48},
+        {1.0/48, 3.0/48, 5.0/48, 3.0/48, 1.0/48}
+    };
 
-        // 遍历图像，应用误差扩散并绘制圆形
-        for (int y = 0; y < rows - 2; ++y) {
-            for (int x = 2; x < cols - 2; ++x) {
-                // 当前像素的量化值
-                int old_pixel = gray.at<uchar>(y, x);
-                int new_pixel = round(old_pixel / 255.0) * 255;  // 简单的二值化
-                gray.at<uchar>(y, x) = new_pixel;
+    // 遍历图像，应用误差扩散并绘制圆形
+    for (int y = 0; y < rows - 2; ++y) {
+        for (int x = 2; x < cols - 2; ++x) {
+            // 当前像素的量化值
+            int old_pixel = gray.at<uchar>(y, x);
+            int new_pixel = round(old_pixel / 255.0) * 255;  // 简单的二值化
+            gray.at<uchar>(y, x) = new_pixel;
 
-                // 计算误差
-                int quant_error = old_pixel - new_pixel;
+            // 计算误差
+            int quant_error = old_pixel - new_pixel;
 
-                // 将误差扩散到相邻像素
-                for (int dy = 0; dy < diffusion_matrix.size(); ++dy) {
-                    for (int dx = -2; dx <= 2; ++dx) {
-                        int new_y = y + dy;
-                        int new_x = x + dx;
-                        if (new_x >= 0 && new_x < cols && new_y < rows) {
-                            gray.at<uchar>(new_y, new_x) = saturate_cast<uchar>(gray.at<uchar>(new_y, new_x) + quant_error * diffusion_matrix[dy][dx + 2]);
-                        }
+            // 将误差扩散到相邻像素
+            for (int dy = 0; dy < diffusion_matrix.size(); ++dy) {
+                for (int dx = -2; dx <= 2; ++dx) {
+                    int new_y = y + dy;
+                    int new_x = x + dx;
+                    if (new_x >= 0 && new_x < cols && new_y < rows) {
+                        gray.at<uchar>(new_y, new_x) = saturate_cast<uchar>(gray.at<uchar>(new_y, new_x) + quant_error * diffusion_matrix[dy][dx + 2]);
                     }
                 }
             }
         }
+    }
 
-        // 绘制圆形
-        for (double y = 0; y < rows; y += cell_size) {
-            for (double x = 0; x < cols; x += cell_size) {
-                // 计算当前网格的实际宽度和高度
-                int grid_width = min(static_cast<int>(cell_size), cols - static_cast<int>(x));
-                int grid_height = min(static_cast<int>(cell_size), rows - static_cast<int>(y));
+    // 绘制圆形
+    for (double y = 0; y < rows; y += cell_size) {
+        for (double x = 0; x < cols; x += cell_size) {
+            // 计算当前网格的实际宽度和高度
+            int grid_width = min(static_cast<int>(cell_size), cols - static_cast<int>(x));
+            int grid_height = min(static_cast<int>(cell_size), rows - static_cast<int>(y));
 
-                // 获取当前网格中的像素区域
-                Rect grid(static_cast<int>(x), static_cast<int>(y), grid_width, grid_height);
-                Mat roi = gray(grid);
+            // 获取当前网格中的像素区域
+            Rect grid(static_cast<int>(x), static_cast<int>(y), grid_width, grid_height);
+            Mat roi = gray(grid);
 
-                // 计算当前网格的平均灰度值
-                Scalar avg_color = mean(roi);
+            // 计算当前网格的平均灰度值
+            Scalar avg_color = mean(roi);
 
-                // 根据平均灰度值决定圆的半径
-                int radius = static_cast<int>((avg_color[0] / 255.0) * (min(grid_width, grid_height) / density_factor));
+            // 根据平均灰度值决定圆的半径
+            int radius = static_cast<int>((avg_color[0] / 255.0) * (min(grid_width, grid_height) / density_factor));
 
-                // 绘制圆形，确保圆形在网格内居中
-                Point center(static_cast<int>(x) + grid_width / 2,
-                             static_cast<int>(y) + grid_height / 2);
-                if (radius > 0) {
-                    circle(dst, center, radius, Scalar(255, 255, 255), FILLED); // 白色圆形
-                }
+            // 绘制圆形，确保圆形在网格内居中
+            Point center(static_cast<int>(x) + grid_width / 2,
+                         static_cast<int>(y) + grid_height / 2);
+            if (radius > 0) {
+                circle(dst, center, radius, Scalar(255, 255, 255), FILLED); // 白色圆形
             }
         }
+    }
 }
 
 
@@ -1350,15 +1350,27 @@ void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrix
                 for (int j = 0; j < gridSize; ++j) {
                     if (pattern[i][j] == 1) {
 
-                        // 计算线段的起始和终止位置（物理坐标）
-                        double start_x_mm = x * pixel_width_mm + j * (pixel_width_mm / gridSize);
-                        double start_y_mm = y * pixel_height_mm + i * (pixel_height_mm / gridSize);
-                        double end_x_mm = start_x_mm + (horizontal_lines ? (pixel_width_mm / gridSize) : 0);
-                        double end_y_mm = start_y_mm + (horizontal_lines ? 0 : (pixel_height_mm / gridSize));
+                        if(horizontal_lines){
+                            // 计算线段的起始和终止位置（物理坐标）
+                            double start_x_mm = x * pixel_width_mm + j * (pixel_width_mm / gridSize);
+                            double start_y_mm = y * pixel_height_mm + i * (pixel_height_mm / gridSize);
+                            double end_x_mm = start_x_mm + (horizontal_lines ? (pixel_width_mm / gridSize) : 0);
+                            double end_y_mm = start_y_mm + (horizontal_lines ? 0 : (pixel_height_mm / gridSize));
+                            // 绘制线段
+                            lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
+                                             Point2f(end_x_mm * resize, end_y_mm * resize)});
+                        }
+                        else {
 
-                        // 绘制线段
-                        lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
-                                         Point2f(end_x_mm * resize, end_y_mm * resize)});
+                            double start_x_mm = x * pixel_width_mm + i * (pixel_width_mm / gridSize);
+                            double start_y_mm = y * pixel_height_mm + j * (pixel_height_mm / gridSize);
+                            double end_x_mm = start_x_mm + (horizontal_lines ? (pixel_width_mm / gridSize) : 0);
+                            double end_y_mm = start_y_mm + (horizontal_lines ? 0 : (pixel_height_mm / gridSize));
+                            // 绘制线段
+                            lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
+                                             Point2f(end_x_mm * resize, end_y_mm * resize)});
+                        }
+
                     }
                 }
             }
@@ -1421,18 +1433,36 @@ void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat&
             // 将每个像素划分为更小的网格，并绘制线段
             int grid_size = grayLevel;  // 根据 grayLevel 来划分网格
             for (int i = 0; i < num_lines_to_draw; ++i) {
-                int grid_row = i / grid_size;
-                int grid_col = i % grid_size;
+                if(horizontal_lines){
+                    int grid_row = i / grid_size;
+                    int grid_col = i % grid_size;
 
-                // 计算线段的起始和终止位置（物理坐标）
-                double start_x_mm = x * pixel_width_mm + grid_col * (pixel_width_mm / grid_size);
-                double start_y_mm = y * pixel_height_mm + grid_row * (pixel_height_mm / grid_size);
-                double end_x_mm = start_x_mm + (horizontal_lines ? (pixel_width_mm / grid_size) : 0);
-                double end_y_mm = start_y_mm + (horizontal_lines ? 0 : (pixel_height_mm / grid_size));
+                    // 计算线段的起始和终止位置（物理坐标）
+                    double start_x_mm = x * pixel_width_mm + grid_col * (pixel_width_mm / grid_size);
+                    double start_y_mm = y * pixel_height_mm + grid_row * (pixel_height_mm / grid_size);
+                    double end_x_mm = start_x_mm + (horizontal_lines ? (pixel_width_mm / grid_size) : 0);
+                    double end_y_mm = start_y_mm + (horizontal_lines ? 0 : (pixel_height_mm / grid_size));
 
-                // 绘制线段
-                lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
-                                 Point2f(end_x_mm * resize, end_y_mm * resize)});
+                    // 绘制线段
+                    lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
+                                     Point2f(end_x_mm * resize, end_y_mm * resize)});
+                }else
+                {
+
+                    int grid_col = i / grid_size;
+                    int grid_row = i % grid_size;
+
+                    // 计算线段的起始和终止位置（物理坐标）
+                    double start_x_mm = x * pixel_width_mm + grid_col * (pixel_width_mm / grid_size);
+                    double start_y_mm = y * pixel_height_mm + grid_row * (pixel_height_mm / grid_size);
+                    double end_x_mm = start_x_mm + (horizontal_lines ? (pixel_width_mm / grid_size) : 0);
+                    double end_y_mm = start_y_mm + (horizontal_lines ? 0 : (pixel_height_mm / grid_size));
+
+                    // 绘制线段
+                    lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
+                                     Point2f(end_x_mm * resize, end_y_mm * resize)});
+
+                }
             }
         }
     }

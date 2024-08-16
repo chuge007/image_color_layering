@@ -218,12 +218,12 @@ void MainWindow::analyzeImage() {
         }
 
         if(ui->rBisWithMatrix->isChecked()){
-            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(processMat, halftoneOut,lineDisdance,imageHeight,pixelHeight,grayLevel,DrawLntype);
+            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(processMat, halftoneOut,lineDisdance,imageHeight,pixelHeight,grayLevel,DrawLntype);
             cv::flip(processMat,processMat,0);
             cv::flip(halftoneOut,halftoneOut,0);
         }else {
 
-            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(processMat, halftoneOut,lineDisdance,imageHeight,pixelHeight,grayLevel,DrawLntype);
+            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(processMat, halftoneOut,lineDisdance,imageHeight,pixelHeight,grayLevel,DrawLntype);
             cv::flip(processMat,processMat,0);
             cv::flip(halftoneOut,halftoneOut,0);
         }

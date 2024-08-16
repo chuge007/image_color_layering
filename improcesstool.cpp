@@ -10,7 +10,7 @@ ImProcessTool::ImProcessTool()
 
 
 void  ImProcessTool::splitCMYK(Mat &image, Mat &cmyk) {
-    if (!image.data) {
+    if (!image.data||image.channels()!=3) {
         std::cout << "Miss Data" << std::endl;
         return ;
     }
