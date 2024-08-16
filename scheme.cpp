@@ -25,6 +25,7 @@ void Scheme::saveCurrentScheme(const QString &filePath, const QString &imagePath
     scheme["imageHeight"] = imageHeight;
     scheme["grayLevel"] = grayLevel;
 
+
     for(int i=0;i<5;i++){
         scheme[QString("colorSaturationLIst%1").arg(i)] = colorSaturationLIst[i];
     }
@@ -66,7 +67,7 @@ void Scheme::loadScheme(const QString &filePath, QString &imagePath,int &grayLev
 
         for(int i=0;i<4;i++){
             colorlayerLIst.append( scheme[QString("colorlayerLIst%1").arg(i)].toBool());
-            qDebug()<<"colorlayerLIst"<<colorlayerLIst;
+
         }
     }
 }

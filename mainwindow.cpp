@@ -18,7 +18,7 @@
 #include <floydsetinTool.h>
 #include <opencv2/opencv.hpp>
 #include <QDebug>
-
+#include <QTimer>
 using namespace cv;
 
 cv::Mat MainWindow::img={};
@@ -43,10 +43,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->pbNewScheme, &QPushButton::clicked, this, &MainWindow::newScheme);
     connect(ui->pbOpenScheme, &QPushButton::clicked, this, &MainWindow::openScheme);
 
-    //    connect(ui->pBexportVectorDiagram, &QPushButton::clicked, this, &MainWindow::exportVectorImage);
-    //    connect(ui->pBexportGrayScaleImage, &QPushButton::clicked, this, &MainWindow::exportGrayImage);
-    //connect(ui->dSBcolorSaturation, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &MainWindow::colorSaturationChanged);
+    connect(ui->dSBcAdjustmentCoefficient, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &MainWindow::dSBcAdjustmentCoefficient);
+    connect(ui->dSBmAdjustmentCoefficient, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &MainWindow::dSBmAdjustmentCoefficient);
+    connect(ui->dSByAdjustmentCoefficient, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &MainWindow::dSByAdjustmentCoefficient);
+    connect(ui->dSBkAdjustmentCoefficient, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &MainWindow::dSBkAdjustmentCoefficient);
     connect(ui->hSColorSaturation, &QSlider::valueChanged, this, &MainWindow::colorSaturationChanged);
+
     connect(ui->cBblackLayering, &QCheckBox::toggled, this, &MainWindow::blackLayerChanged);
     connect(ui->cmbColorLayerdType,
             QOverload<const QString &>::of(&QComboBox::currentIndexChanged),
@@ -56,6 +58,14 @@ MainWindow::MainWindow(QWidget *parent) :
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this,
             &MainWindow::halftoneGridTypeChanged);
+
+
+
+    //    connect(ui->pBexportVectorDiagram, &QPushButton::clicked, this, &MainWindow::exportVectorImage);
+    //    connect(ui->pBexportGrayScaleImage, &QPushButton::clicked, this, &MainWindow::exportGrayImage);
+    //connect(ui->dSBcolorSaturation, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &MainWindow::colorSaturationChanged);
+
+
     init();
 }
 
@@ -110,7 +120,25 @@ void MainWindow::loadImage() {
 
 void MainWindow::analyzeImage() {
 
-    if (ProcessImage.empty()){return;}
+    if(scheme->schemePath==""||ui->leSchemeDameDisplay->text()==""){
+        QMessageBox box(QMessageBox::Question,QStringLiteral("提示"),QStringLiteral("请先建立方案"));
+        box.setStandardButtons (QMessageBox::Ok);
+        box.exec ();
+        return;}
+
+    if (ProcessImage.empty()||ui->sBimageHeight->value()<=0||ui->sbGrayLevel->value()<=0){
+
+        QMessageBox *box=new QMessageBox(QMessageBox::Question,QStringLiteral("提示"),QStringLiteral("请选择图像，灰度层级和图片高度要大于0"));
+
+        box->setStandardButtons(QMessageBox::NoButton); // 禁用默认按钮
+        // 使用 QTimer 设置1秒后自动关闭消息框
+        QTimer::singleShot(1000,  box, [box]() {
+            box->close();
+            box->deleteLater();
+        });
+        // 打开消息框（非模态）
+        box->open ();
+        return;}
 
     double lineDisdance;
     bool  DrawLntype;
@@ -119,47 +147,51 @@ void MainWindow::analyzeImage() {
     int   grayLevel=ui->sbGrayLevel->value();
 
     double pixelHeight=lineDistance_f*grayLevel;
-
-    qDebug()<<"pixelHeight   "<<(pixelHeight);
-
     double density_factor=imageHeight/(lineDistance_f*grayLevel);
-
-
-    qDebug()<<"density_factor   "<<density_factor;
 
     floydsetin->lines={};
     floydsetin->linesSegments={};
 
-    if(ui->cmbDrawLnType->currentIndex()==0){DrawLntype=true;}else { DrawLntype=false;}
-
-
     vector<int> colorList;
     Mat img_cmyk,halftoneOut,mat_not,processMat,circleOrRect;
+
+
+
+    if(ui->cmbDrawLnType->currentIndex()==0){DrawLntype=true;}else { DrawLntype=false;}
+
 
     if (ui->cmbColorLayerdType->currentText()=="CMYK"){
         // Split CMYK channels
         img_cmyk.create(ProcessImage.rows, ProcessImage.cols, CV_8UC4);
         ImProcess->splitCMYK(ProcessImage, img_cmyk);
-        split(img_cmyk, vecCmykRgb);}
+        split(img_cmyk, vecCmykRgb);
+        Contrast=vecCmykRgb;}
+
     else {
         // Split RGB channels
         split(ProcessImage, vecCmykRgb);
+        Contrast=vecCmykRgb;
     }
 
-
-    if(selcetLayre(colorList)==(-1)){
+    selcetLayre(colorList);
+    if( colorList.empty()){
         QMessageBox box(QMessageBox::Question,QStringLiteral("提示"),QStringLiteral("选择要打印的图层"));
         box.setStandardButtons (QMessageBox::Ok);
         box.exec ();
         return;}
 
+
     for(const auto &intColor : colorList){
+
 
         processMat=vecCmykRgb[intColor];
 
 
         ImProcess->resizeImageWithLanczos4(processMat,processMat,density_factor);
 
+
+        qDebug()<<"pixelHeight   "<<(pixelHeight);
+        qDebug()<<"density_factor   "<<density_factor;
         qDebug()<<"processMat   "<<processMat.cols;
 
         {
@@ -184,10 +216,17 @@ void MainWindow::analyzeImage() {
             //floydsetin->halftoneUsingline_doubelSizeGrid(circle, halftone_mat,floydsetin->lines, gridSize_f*0.5,true);
             //floydsetin->halftoneUsingLineWithErrorDiffusion(circle, halftone_mat,floydsetin->lines, gridSize_f,true);
         }
-        floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(processMat, halftoneOut,lineDisdance,imageHeight,pixelHeight,grayLevel,DrawLntype);
-        cv::flip(processMat,processMat,0);
-        cv::flip(halftoneOut,halftoneOut,0);
 
+        if(ui->rBisWithMatrix->isChecked()){
+            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(processMat, halftoneOut,lineDisdance,imageHeight,pixelHeight,grayLevel,DrawLntype);
+            cv::flip(processMat,processMat,0);
+            cv::flip(halftoneOut,halftoneOut,0);
+        }else {
+
+            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(processMat, halftoneOut,lineDisdance,imageHeight,pixelHeight,grayLevel,DrawLntype);
+            cv::flip(processMat,processMat,0);
+            cv::flip(halftoneOut,halftoneOut,0);
+        }
         // 将线段位置信息保存为 .plt 文件
         floydsetin->mergeLineSegments(floydsetin->lines,floydsetin->linesSegments,DrawLntype);
         QString pltPath=imageSplitDirPath+QString("/LayerColor %1 .plt").arg(intColor);
@@ -255,18 +294,7 @@ void MainWindow::displayImage(const cv::Mat &image, QLabel *label) {
 
 
 
-void MainWindow::saveAs() {
-    QString fileName = QFileDialog::getSaveFileName(this, "Save As", "", "Images (*.png *.jpg *.bmp)");
-    if (!fileName.isEmpty()) {
-        cv::imwrite(fileName.toLocal8Bit().toStdString(), imread(imagePath.toLocal8Bit().toStdString()));
-    }
-}
 
-void MainWindow::save() {
-    if (!imagePath.isEmpty()) {
-        cv::imwrite(imagePath.toLocal8Bit().toStdString(), imread(imagePath.toLocal8Bit().toStdString()));
-    }
-}
 
 void MainWindow::exportVectorImage() {
 
@@ -300,26 +328,39 @@ void MainWindow::colorSaturationChanged(int index) {
 
 void MainWindow::blackLayerChanged(bool checked) {
     // 获取当前图像
-    Mat src = cv::imread(imagePath.toLocal8Bit().toStdString());
-    if (src.empty()) {
+
+    if (OriginalImage.empty()) {
         return;
     }
 
-    // 转换到灰度图像
-    Mat gray;
-    cvtColor(src, gray, COLOR_BGR2GRAY);
+    if(ProcessImage.channels()==3){
+        // 转换到灰度图像
+        Mat gray;
+        cvtColor(ProcessImage, gray, COLOR_BGR2GRAY);
 
-    // 调整黑色层次
-    if (checked) {
-        for (int i = 0; i < gray.rows; ++i) {
-            for (int j = 0; j < gray.cols; ++j) {
-                gray.at<uchar>(i, j) = saturate_cast<uchar>(gray.at<uchar>(i, j) * 1.5);
+        // 调整黑色层次
+        if (checked) {
+            for (int i = 0; i < gray.rows; ++i) {
+                for (int j = 0; j < gray.cols; ++j) {
+                    gray.at<uchar>(i, j) = saturate_cast<uchar>(gray.at<uchar>(i, j) * 1.5);
+                }
             }
         }
+
+        ProcessImage=gray;
+        // 显示调整后的图像
+        displayImage(gray, ui->lbOriginalImageDisplay);
+    }
+    else {
+
+
+
+        ProcessImage=OriginalImage;
+        // 显示调整后的图像
+        displayImage(ProcessImage, ui->lbOriginalImageDisplay);
+
     }
 
-    // 显示调整后的图像
-    displayImage(gray, ui->lbOriginalImageDisplay);
 }
 
 
@@ -328,14 +369,14 @@ void MainWindow::loadScheme(const QString &filePath) {
 
 
     scheme->loadScheme(filePath, imagePath,grayLevel, halftoneGridType, DrawLnType, colorlayereType,
-                       pixelGridHeight,imageHeight, blackLayer,colorSaturationLIst,colorLayerList);
+                       pixelGridHeight,imageHeight, blackLayer,colorSaturationList,colorLayerList);
 
-    ui->hSColorSaturation->setValue(colorSaturationLIst[0]);
-    ui->lbColorSaturationDisplay->setText(QString::number(colorSaturationLIst[0]));
-    ui->dSBcAdjustmentCoefficient->setValue(colorSaturationLIst[1]);
-    ui->dSBmAdjustmentCoefficient->setValue(colorSaturationLIst[2]);
-    ui->dSByAdjustmentCoefficient->setValue(colorSaturationLIst[3]);
-    ui->dSBkAdjustmentCoefficient->setValue(colorSaturationLIst[4]);
+    ui->hSColorSaturation->setValue(colorSaturationList[0]);
+    ui->lbColorSaturationDisplay->setText(QString::number(colorSaturationList[0]));
+    ui->dSBcAdjustmentCoefficient->setValue(colorSaturationList[1]);
+    ui->dSBmAdjustmentCoefficient->setValue(colorSaturationList[2]);
+    ui->dSByAdjustmentCoefficient->setValue(colorSaturationList[3]);
+    ui->dSBkAdjustmentCoefficient->setValue(colorSaturationList[4]);
     ui->sbGrayLevel->setValue(grayLevel);
     ui->cBblackLayering->setChecked(blackLayer);
     ui->dsbLineDistance->setValue(pixelGridHeight);
@@ -354,20 +395,37 @@ void MainWindow::loadScheme(const QString &filePath) {
 
     ui->lbImageName->setText(imagePath);
     if (!imagePath.isEmpty()) {
-        QImage img;
-        img.load(imagePath);
-        QPixmap pixmap = QPixmap::fromImage(img);
-        ui->lbOriginalImageDisplay->setPixmap(pixmap.scaled(ui->lbOriginalImageDisplay->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        // Load the source image
         OriginalImage = cv::imread(imagePath.toLocal8Bit().toStdString());
-        ProcessImage=OriginalImage;
+        ProcessImage = OriginalImage;
+
+        // Process the image (assuming colorSaturation modifies ProcessImage)
+        ImProcess->colorSaturation(OriginalImage, ProcessImage, colorSaturationList[0]);
+
+        // Convert cv::Mat (ProcessImage) to QImage
+        QImage img((const unsigned char*) ProcessImage.data, ProcessImage.cols, ProcessImage.rows, ProcessImage.step, QImage::Format_RGB888);
+
+        // Convert BGR to RGB (since OpenCV loads images in BGR format)
+        QImage imgRGB = img.rgbSwapped();
+
+        // Convert QImage to QPixmap and display
+        QPixmap pixmap = QPixmap::fromImage(imgRGB);
+        ui->lbOriginalImageDisplay->setPixmap(pixmap.scaled(ui->lbOriginalImageDisplay->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
     }
+
+
 }
 
 void MainWindow::saveAsScheme() {
+
+    if(scheme->schemePath==""||ui->leSchemeDameDisplay->text()==""){
+        QMessageBox box(QMessageBox::Question,QStringLiteral("提示"),QStringLiteral("请先建立方案"));
+        box.setStandardButtons (QMessageBox::Ok);
+        box.exec ();
+        return;}
+
     QString fileName = QFileDialog::getSaveFileName(this, "Save Scheme As", "", "Scheme Files (*.json)");
     if (!fileName.isEmpty()) {
-        QVector<double> colorSaturationList = {
+        colorSaturationList = {
             static_cast<double>(ui->hSColorSaturation->value()),
             ui->dSBcAdjustmentCoefficient->value(),
             ui->dSBmAdjustmentCoefficient->value(),
@@ -375,17 +433,16 @@ void MainWindow::saveAsScheme() {
             ui->dSBkAdjustmentCoefficient->value()
         };
 
-        QVector<bool> colorLayerList = {
+        colorLayerList = {
             ui->cBSelectCorR->isChecked(),
             ui->cBSelectMorG->isChecked(),
             ui->cBSelectYorB->isChecked(),
             ui->cBSelectK->isChecked()
         };
 
-        QVector <double> colorSaturationLIst{static_cast<double>(ui->hSColorSaturation->value(), ui->dSBcAdjustmentCoefficient->value(),ui->dSBmAdjustmentCoefficient->value(),ui->dSByAdjustmentCoefficient->value()),ui->dSBmAdjustmentCoefficient->value(),ui->dSBkAdjustmentCoefficient->value()};
         scheme->saveCurrentScheme(fileName, imagePath, ui->sbGrayLevel->value(), halftoneGridType , ui->cmbDrawLnType->currentIndex()
                                   , ui->cmbColorLayerdType->currentText()  ,ui->dsbLineDistance->value(),ui->sBimageHeight->value()
-                                  ,ui->cBblackLayering->isChecked(), colorSaturationLIst,colorLayerList);
+                                  ,ui->cBblackLayering->isChecked(), colorSaturationList,colorLayerList);
         scheme->setSchemePath(fileName);
     }
     save_setting("IsStartWithScheme",ui->cbStartInScheme->isChecked());
@@ -394,9 +451,13 @@ void MainWindow::saveAsScheme() {
 }
 
 void MainWindow::saveScheme() {
-
+    if(scheme->schemePath==""||ui->leSchemeDameDisplay->text()==""){
+        QMessageBox box(QMessageBox::Question,QStringLiteral("提示"),QStringLiteral("请先建立方案"));
+        box.setStandardButtons (QMessageBox::Ok);
+        box.exec ();
+        return;}
     if (!scheme->getSchemePath().isEmpty()) {
-        QVector<double> colorSaturationList = {
+        colorSaturationList = {
             static_cast<double>(ui->hSColorSaturation->value()),
             ui->dSBcAdjustmentCoefficient->value(),
             ui->dSBmAdjustmentCoefficient->value(),
@@ -410,9 +471,10 @@ void MainWindow::saveScheme() {
             ui->cBSelectYorB->isChecked(),
             ui->cBSelectK->isChecked()
         };
+
         scheme->saveCurrentScheme(scheme->getSchemePath(), imagePath,  ui->sbGrayLevel->value(),ui->cbGridType->currentIndex() , ui->cmbDrawLnType->currentIndex()
                                   , ui->cmbColorLayerdType->currentText()  ,ui->dsbLineDistance->value(),ui->sBimageHeight->value()
-                                  ,ui->cBblackLayering->isChecked(), colorSaturationLIst,colorLayerList);
+                                  ,ui->cBblackLayering->isChecked(), colorSaturationList,colorLayerList);
     } else {
         saveAsScheme();
     }
@@ -473,7 +535,40 @@ void MainWindow::colorLayerChanged(){
 
 }
 
+void MainWindow::dSBcAdjustmentCoefficient(double value){
 
+    if(Contrast.empty()){return;}
+    ImProcess->adjustContrast(Contrast[0], vecCmykRgb[0] , value, 0);
+    displayImage(vecCmykRgb[0], ui->lbOriginalImageDisplay_cORr);
+
+}
+
+void MainWindow::dSBmAdjustmentCoefficient(double value){
+
+    if(Contrast.empty()){return;}
+    ImProcess->adjustContrast(Contrast[1], vecCmykRgb[1] , value, 0);
+    displayImage(vecCmykRgb[1], ui->lbOriginalImageDisplay_mORg);
+
+
+}
+
+void MainWindow::dSByAdjustmentCoefficient(double value){
+
+    if(Contrast.empty()){return;}
+    ImProcess->adjustContrast(Contrast[2], vecCmykRgb[2] , value, 0);
+    displayImage(vecCmykRgb[2], ui->lbOriginalImageDisplay_yORb);
+
+
+}
+
+void MainWindow::dSBkAdjustmentCoefficient(double value){
+
+    if(Contrast.empty()||Contrast[3].empty()){return;}
+    ImProcess->adjustContrast(Contrast[3], vecCmykRgb[3] , value, 0);
+    displayImage(vecCmykRgb[3], ui->lbOriginalImageDisplay_k);
+
+
+}
 
 void MainWindow::pBdisplayImage1(){
 
@@ -595,19 +690,17 @@ void MainWindow::halftoneGridTypeChanged(int index){
 
 
 
-int MainWindow::selcetLayre(vector<int> &color){
+void  MainWindow::selcetLayre(vector<int> &color){
 
 
-
+    qDebug()<<"cBSelectCorR"<<ui->cBSelectCorR->isChecked();
     if (ui->cBSelectCorR->isChecked()){          color.push_back(0);    }
-    else if (ui->cBSelectMorG->isChecked()) {    color.push_back(1);    }
-    else if (ui->cBSelectYorB->isChecked()) {    color.push_back(2);    }
-    else if (ui->cBSelectK->isChecked()) {    color.push_back(3);    }
-    else {
 
-        return -1;
-    }
+    if (ui->cBSelectMorG->isChecked()) {    color.push_back(1);    }
 
+    if (ui->cBSelectYorB->isChecked()) {    color.push_back(2);    }
+
+    if (ui->cBSelectK->isChecked()) {    color.push_back(3);    }
 
 
 }

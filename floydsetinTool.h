@@ -32,7 +32,15 @@ public:
     vector<LineSegment> lines;
     vector<LineSegment> linesSegments;
     void mergeLineSegments(const vector<LineSegment>& input_lines, vector<LineSegment>& merged_lines,bool is_horizontal);
+    void saveAsPlt(const string& filename, const vector<LineSegment>& lines);
+
+    template <typename T> T clamp(T value, T min_value, T max_value);
     // 函数声明
+    std::vector<std::pair<int, int>> generateDistributedOrder(int gridSize);
+    std::vector<std::vector<int>> generatePatternMatrix(int gridSize, int numPoints);
+
+
+
     uchar findfit(uchar p_param);
 
     int   findfitInt(int pixel_value,int levels);
@@ -79,9 +87,13 @@ public:
 
     void halftoneWithCirclesDoubelSizeGridTest(Mat& src, Mat& dst, double cell_size, int density_factor);
 
+
+
     void halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst,double &line_distance,double imageHeight ,double LineDistance,int grayLevel, bool horizontal_lines = true);
 
-    void saveAsPlt(const string& filename, const vector<LineSegment>& lines);
+    void halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(Mat& src, Mat& dst,double &line_distance,double imageHeight ,double LineDistance,int grayLevel, bool horizontal_lines = true);
+
+
 
 };
 #endif // IMAGE_PROCESSING_H

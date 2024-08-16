@@ -75,7 +75,15 @@ void ImProcessTool::colorSaturation(Mat &img,Mat &out,int index){
 }
 
 
+// 调整灰度图对比度的函数
+void ImProcessTool::adjustContrast(const cv::Mat& src,  cv::Mat& dst ,double alpha, int beta) {
 
+    // alpha: 对比度因子 (1.0 保持原始对比度, <1.0 降低对比度, >1.0 增加对比度)
+    // beta: 亮度调整值
+    dst.release();
+    src.convertTo(dst, -1, alpha, beta);
+
+}
 
 
 void ImProcessTool::resizeImageWithLanczos4(const cv::Mat& inputImage, cv::Mat& outputImage,double targetHeight) {

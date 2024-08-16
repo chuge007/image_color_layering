@@ -1245,81 +1245,126 @@ void floydsetinTool::halftoneUsingLineWithErrorDiffusion(Mat& src, Mat& dst,vect
     }
 }
 
+//*****************************************************************************************************************************************************************
 
 
+//// 生成点的分布顺序，确保尽可能有间隔
+std::vector<std::pair<int, int>> floydsetinTool::generateDistributedOrder(int gridSize) {
+    std::vector<std::pair<int, int>> order;
 
+    // 优先填充“棋盘”位置，即坐标为(奇,奇)或(偶,偶)的点
+    for (int i = 0; i < gridSize; ++i) {
+        for (int j = 0; j < gridSize; ++j) {
+            if ((i % 2 == 0 && j % 2 == 0) || (i % 2 == 1 && j % 2 == 1)) {
+                order.emplace_back(i, j);
+            }
+        }
+    }
 
-//像素网格划分，模式法,误差扩散，细线太多
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance, double imageHeight, double pixelHeight, int grayLevel, bool horizontal_lines) {
-//    Mat gray;
-//    float resize = 40;
-//    int totalLines = grayLevel * grayLevel + 1;  // 最大的线条数量
+    // 然后填充其余的点，确保尽量均匀分布
+    for (int i = 0; i < gridSize; ++i) {
+        for (int j = 0; j < gridSize; ++j) {
+            if ((i % 2 != j % 2)) {
+                order.emplace_back(i, j);
+            }
+        }
+    }
 
-//    // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//    if (src.channels() == 3) {
-//        cvtColor(src, gray, COLOR_BGR2GRAY);
-//    } else {
-//        gray = src;
-//    }
+    return order;
+}
 
-//    // 创建一个与原图像相同大小的空白图像
-//    dst = Mat::zeros(gray.size(), CV_8UC1);
+std::vector<std::vector<int>> floydsetinTool::generatePatternMatrix(int gridSize, int numPoints) {
+    std::vector<std::vector<int>> pattern(gridSize, std::vector<int>(gridSize, 0));
 
-//    // 获取图像尺寸
-//    int rows = gray.rows;
-//    int cols = gray.cols;
+    // 获取分布顺序
+    std::vector<std::pair<int, int>> fillOrder = generateDistributedOrder(gridSize);
 
-//    // 计算像素的实际物理尺寸（毫米）
-//    double pixel_height_mm = pixelHeight;
-//    double pixel_width_mm = pixelHeight;  // 假设图像宽度与高度的比例相同
+    // 根据分布顺序填充指定数量的点
+    for (int i = 0; i < numPoints; ++i) {
+        int x = fillOrder[i].first;
+        int y = fillOrder[i].second;
+        pattern[x][y] = 1;
+    }
 
-//    // 初始化误差扩散矩阵
-//    std::vector<std::vector<double>> error_diffusion(rows, std::vector<double>(cols, 0.0));
+    return pattern;
+}
 
-//    // 根据量化后的灰度图像绘制线段
-//    for (int y = 0; y < rows; ++y) {
-//        for (int x = 0; x < cols; ++x) {
+////像素网格划分，模式法,误差扩散，小网格位置用矩阵分散
+void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(Mat& src, Mat& dst, double &line_distance, double imageHeight, double pixelHeight, int grayLevel, bool horizontal_lines) {
+    Mat gray;
+    float resize = 40;
+    int gridSize = grayLevel;
+    int totalLines = gridSize * gridSize+1;  // 5*5 + 1 = 26 个灰度等级
 
-//            // 获取当前像素的灰度值并添加误差扩散的值
-//            double pixel_value = static_cast<float>(gray.at<uchar>(y, x)) + error_diffusion[y][x];
+    // 检查图像的通道数，如果是彩色图像则转换为灰度图
+    if (src.channels() == 3) {
+        cvtColor(src, gray, COLOR_BGR2GRAY);
+    } else {
+        gray = src;
+    }
 
-//            // 限制 pixel_value 在 0 到 255 之间
-//            pixel_value = min(max(pixel_value, 0.0), 255.0);
+    // 创建一个与原图像相同大小的空白图像
+    dst = Mat::zeros(gray.size(), CV_8UC1);
 
-//            // 计算灰度等级索引，线条数量与灰度值成反比
-//            int num_lines_to_draw = static_cast<int>((1.0f - (pixel_value / 255.0f)) * totalLines);
+    // 获取图像尺寸
+    int rows = gray.rows;
+    int cols = gray.cols;
 
-//            // 计算当前像素的量化误差
-//            double quant_error = pixel_value - (255.0 / grayLevel) * floor(pixel_value / (255.0 / grayLevel));
+    // 计算像素的实际物理尺寸（毫米）
+    double pixel_height_mm = pixelHeight;
+    double pixel_width_mm = pixelHeight;  // 假设图像宽度与高度的比例相同
 
-//            // 误差扩散：将误差扩散到周围像素
-//            if (x + 1 < cols) error_diffusion[y][x + 1] += quant_error * 7 / 16.0;
-//            if (y + 1 < rows) {
-//                if (x > 0) error_diffusion[y + 1][x - 1] += quant_error * 3 / 16.0;
-//                error_diffusion[y + 1][x] += quant_error * 5 / 16.0;
-//                if (x + 1 < cols) error_diffusion[y + 1][x + 1] += quant_error * 1 / 16.0;
-//            }
+    // 初始化误差扩散矩阵
+    std::vector<std::vector<double>> error_diffusion(rows, std::vector<double>(cols, 0.0));
 
-//            // 将每个像素划分为更小的网格，并绘制线段
-//            int grid_size = grayLevel;  // 根据 grayLevel 来划分网格
-//            for (int i = 0; i < num_lines_to_draw; ++i) {
-//                int grid_row = i / grid_size;
-//                int grid_col = i % grid_size;
+    // 根据量化后的灰度图像绘制线段
+    for (int y = 0; y < rows; ++y) {
+        for (int x = 0; x < cols; ++x) {
 
-//                // 计算线段的起始和终止位置（物理坐标）
-//                double start_x_mm = x * pixel_width_mm + grid_col * (pixel_width_mm / grid_size);
-//                double start_y_mm = y * pixel_height_mm + grid_row * (pixel_height_mm / grid_size);
-//                double end_x_mm = start_x_mm + (horizontal_lines ? (pixel_width_mm / grid_size) : 0);
-//                double end_y_mm = start_y_mm + (horizontal_lines ? 0 : (pixel_height_mm / grid_size));
+            // 获取当前像素的灰度值并添加误差扩散的值
+            double pixel_value = static_cast<float>(gray.at<uchar>(y, x)) + error_diffusion[y][x];
 
-//                // 绘制线段
-//                lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
-//                                 Point2f(end_x_mm * resize, end_y_mm * resize)});
-//            }
-//        }
-//    }
-//}
+            // 限制 pixel_value 在 0 到 255 之间
+            pixel_value = min(max(pixel_value, 0.0), 255.0);
 
+            // 计算灰度等级索引，选择对应的矩阵
+            int gray_index = static_cast<int>((1.0f - (pixel_value / 255.0f)) * (totalLines));
+
+            // 生成对应的矩阵
+            gray_index = clamp(gray_index, 0, totalLines-1);
+            auto pattern = generatePatternMatrix(gridSize, gray_index);
+
+            // 计算当前像素的量化误差
+            double quant_error = pixel_value - (255.0 / totalLines) * floor(pixel_value / (255.0 / totalLines));
+
+            // 误差扩散：将误差扩散到周围像素
+            if (x + 1 < cols) error_diffusion[y][x + 1] += quant_error * 7 / 16.0;
+            if (y + 1 < rows) {
+                if (x > 0) error_diffusion[y + 1][x - 1] += quant_error * 3 / 16.0;
+                error_diffusion[y + 1][x] += quant_error * 5 / 16.0;
+                if (x + 1 < cols) error_diffusion[y + 1][x + 1] += quant_error * 1 / 16.0;
+            }
+
+            // 使用生成的矩阵绘制线段
+            for (int i = 0; i < gridSize; ++i) {
+                for (int j = 0; j < gridSize; ++j) {
+                    if (pattern[i][j] == 1) {
+
+                        // 计算线段的起始和终止位置（物理坐标）
+                        double start_x_mm = x * pixel_width_mm + j * (pixel_width_mm / gridSize);
+                        double start_y_mm = y * pixel_height_mm + i * (pixel_height_mm / gridSize);
+                        double end_x_mm = start_x_mm + (horizontal_lines ? (pixel_width_mm / gridSize) : 0);
+                        double end_y_mm = start_y_mm + (horizontal_lines ? 0 : (pixel_height_mm / gridSize));
+
+                        // 绘制线段
+                        lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
+                                         Point2f(end_x_mm * resize, end_y_mm * resize)});
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 //像素网格划分，模式法,误差扩散
@@ -1392,6 +1437,110 @@ void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat&
         }
     }
 }
+
+
+//*****************************************************************************************************************************************************************
+
+
+void floydsetinTool::saveAsPlt(const string& filename, const vector<LineSegment>& lines) {
+    ofstream plt_file(filename);
+    if (!plt_file.is_open()) {
+        cerr << "无法打开文件" << filename << endl;
+        return;
+    }
+
+    // 写入PLT格式头部信息 (简化版本)
+    plt_file << "IN;\n";  // Initialize
+    plt_file << "SP1;\n";  // Select pen 1
+
+    // 写入线段数据
+    for (const auto& line : lines) {
+        plt_file << "PU" << line.start.x << "," << line.start.y << ";\n";  // Move to start point
+        plt_file << "PD" << line.end.x << "," << line.end.y << ";\n";      // Draw to end point
+    }
+
+    plt_file << "PU0,0;\n";  // Pen up and move to origin
+    plt_file << "SP0;\n";  // End plotting
+    plt_file.close();
+}
+
+
+void floydsetinTool::mergeLineSegments(const vector<LineSegment>& input_lines, vector<LineSegment>& merged_lines, bool is_horizontal) {
+    if (input_lines.empty()) return;
+
+    // 先按线段的起点排序：根据水平线或垂直线的不同类型，选择排序方式
+    vector<LineSegment> sorted_lines = input_lines;
+    if (is_horizontal) {
+        // 对于水平线段，按y排序，如果y相同则按x排序
+        sort(sorted_lines.begin(), sorted_lines.end(), [](const LineSegment& a, const LineSegment& b) {
+            if (a.start.y == b.start.y) {
+                return a.start.x < b.start.x;
+            }
+            return a.start.y < b.start.y;
+        });
+    } else {
+        // 对于垂直线段，按x排序，如果x相同则按y排序
+        sort(sorted_lines.begin(), sorted_lines.end(), [](const LineSegment& a, const LineSegment& b) {
+            if (a.start.x == b.start.x) {
+                return a.start.y < b.start.y;
+            }
+            return a.start.x < b.start.x;
+        });
+    }
+
+    LineSegment* current_line = new LineSegment(sorted_lines[0]);
+
+    for (size_t i = 1; i < sorted_lines.size(); ++i) {
+        const auto& line = sorted_lines[i];
+
+        if (is_horizontal) {
+            // 处理水平线段的合并情况
+            if (current_line->start.y == current_line->end.y && current_line->start.y == line.start.y) {
+                if (current_line->end.x >= line.start.x) {
+                    current_line->end.x = max(current_line->end.x, line.end.x);
+                } else {
+                    merged_lines.push_back(*current_line);
+                    *current_line = line;
+                }
+            } else {
+                merged_lines.push_back(*current_line);
+                *current_line = line;
+            }
+        } else {
+            // 处理垂直线段的合并情况
+            if (current_line->start.x == current_line->end.x && current_line->start.x == line.start.x) {
+                if (current_line->end.y >= line.start.y) {
+                    current_line->end.y = max(current_line->end.y, line.end.y);
+                } else {
+                    merged_lines.push_back(*current_line);
+                    *current_line = line;
+                }
+            } else {
+                merged_lines.push_back(*current_line);
+                *current_line = line;
+            }
+        }
+    }
+
+    // 添加最后一个线段
+    merged_lines.push_back(*current_line);
+    delete current_line;
+}
+
+
+
+template <typename T>
+T floydsetinTool::clamp(T value, T min_value, T max_value) {
+    if (value < min_value) return min_value;
+    if (value > max_value) return max_value;
+    return value;
+}
+
+
+
+
+
+
 
 
 
@@ -1509,1110 +1658,6 @@ void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat&
 //                    double line_x_mm = x * pixel_width_mm + i * (pixel_width_mm / num_lines);
 //                    double line_length = pixel_height_mm * (1.0 - line_length_factor); // 线段长度与灰度值成反比
 //                    lines.push_back({Point2f(line_x_mm * resize, y * pixel_height_mm * resize), Point2f(line_x_mm * resize, (y * pixel_height_mm + line_length) * resize)});
-//                }
-//            }
-//        }
-//    }
-//}
-
-
-
-
-
-void floydsetinTool::saveAsPlt(const string& filename, const vector<LineSegment>& lines) {
-    ofstream plt_file(filename);
-    if (!plt_file.is_open()) {
-        cerr << "无法打开文件" << filename << endl;
-        return;
-    }
-
-    // 写入PLT格式头部信息 (简化版本)
-    plt_file << "IN;\n";  // Initialize
-    plt_file << "SP1;\n";  // Select pen 1
-
-    // 写入线段数据
-    for (const auto& line : lines) {
-        plt_file << "PU" << line.start.x << "," << line.start.y << ";\n";  // Move to start point
-        plt_file << "PD" << line.end.x << "," << line.end.y << ";\n";      // Draw to end point
-    }
-
-    plt_file << "PU0,0;\n";  // Pen up and move to origin
-    plt_file << "SP0;\n";  // End plotting
-    plt_file.close();
-}
-
-
-void floydsetinTool::mergeLineSegments(const vector<LineSegment>& input_lines, vector<LineSegment>& merged_lines, bool is_horizontal) {
-    if (input_lines.empty()) return;
-
-    // 先按线段的起点排序：根据水平线或垂直线的不同类型，选择排序方式
-    vector<LineSegment> sorted_lines = input_lines;
-    if (is_horizontal) {
-        // 对于水平线段，按y排序，如果y相同则按x排序
-        sort(sorted_lines.begin(), sorted_lines.end(), [](const LineSegment& a, const LineSegment& b) {
-            if (a.start.y == b.start.y) {
-                return a.start.x < b.start.x;
-            }
-            return a.start.y < b.start.y;
-        });
-    } else {
-        // 对于垂直线段，按x排序，如果x相同则按y排序
-        sort(sorted_lines.begin(), sorted_lines.end(), [](const LineSegment& a, const LineSegment& b) {
-            if (a.start.x == b.start.x) {
-                return a.start.y < b.start.y;
-            }
-            return a.start.x < b.start.x;
-        });
-    }
-
-    LineSegment* current_line = new LineSegment(sorted_lines[0]);
-
-    for (size_t i = 1; i < sorted_lines.size(); ++i) {
-        const auto& line = sorted_lines[i];
-
-        if (is_horizontal) {
-            // 处理水平线段的合并情况
-            if (current_line->start.y == current_line->end.y && current_line->start.y == line.start.y) {
-                if (current_line->end.x >= line.start.x) {
-                    current_line->end.x = max(current_line->end.x, line.end.x);
-                } else {
-                    merged_lines.push_back(*current_line);
-                    *current_line = line;
-                }
-            } else {
-                merged_lines.push_back(*current_line);
-                *current_line = line;
-            }
-        } else {
-            // 处理垂直线段的合并情况
-            if (current_line->start.x == current_line->end.x && current_line->start.x == line.start.x) {
-                if (current_line->end.y >= line.start.y) {
-                    current_line->end.y = max(current_line->end.y, line.end.y);
-                } else {
-                    merged_lines.push_back(*current_line);
-                    *current_line = line;
-                }
-            } else {
-                merged_lines.push_back(*current_line);
-                *current_line = line;
-            }
-        }
-    }
-
-    // 添加最后一个线段
-    merged_lines.push_back(*current_line);
-    delete current_line;
-}
-
-
-
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance, double imageHeight, double pixelHeight, int grayLevel, bool horizontal_lines) {
-//    Mat gray;
-//    float resize = 40;
-//    int totalLines = grayLevel * grayLevel + 1;  // 最大的线条数量
-
-//    // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//    if (src.channels() == 3) {
-//        cvtColor(src, gray, COLOR_BGR2GRAY);
-//    } else {
-//        gray = src;
-//    }
-
-//    // 创建一个与原图像相同大小的空白图像
-//    dst = Mat::zeros(gray.size(), CV_8UC1);
-
-//    // 获取图像尺寸
-//    int rows = gray.rows;
-//    int cols = gray.cols;
-
-//    // 计算像素的实际物理尺寸（毫米）
-//    double pixel_height_mm = pixelHeight;
-//    double pixel_width_mm = pixelHeight;  // 假设图像宽度与高度的比例相同
-
-//    // 初始化误差矩阵
-//    Mat error = Mat::zeros(rows, cols, CV_32FC1);
-
-//    // 遍历图像的每个像素
-//    for (int y = 0; y < rows; ++y) {
-//        for (int x = 0; x < cols; ++x) {
-
-//            // 获取当前像素的灰度值并添加误差
-//            double pixel_value = static_cast<float>(gray.at<uchar>(y, x)) + error.at<float>(y, x);
-
-//            // 限制 pixel_value 在 0 到 255 之间
-//            pixel_value = min(max(pixel_value, 0.0), 255.0);
-
-//            // 计算灰度等级索引，线条数量与灰度值成反比
-//            int num_lines_to_draw = static_cast<int>(((pixel_value / 255.0f)) * totalLines);
-
-//            // 将每个像素划分为更小的网格，并绘制线段
-//            int grid_size = grayLevel;  // 根据 grayLevel 来划分网格
-//            for (int i = 0; i < num_lines_to_draw; ++i) {
-//                int grid_row = i / grid_size;
-//                int grid_col = i % grid_size;
-
-//                // 计算线段的起始和终止位置（物理坐标）
-//                double start_x_mm = x * pixel_width_mm + grid_col * (pixel_width_mm / grid_size);
-//                double start_y_mm = y * pixel_height_mm + grid_row * (pixel_height_mm / grid_size);
-//                double end_x_mm = start_x_mm + (horizontal_lines ? (pixel_width_mm / grid_size) : 0);
-//                double end_y_mm = start_y_mm + (horizontal_lines ? 0 : (pixel_height_mm / grid_size));
-
-//                // 绘制线段
-//                lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
-//                                 Point2f(end_x_mm * resize, end_y_mm * resize)});
-//            }
-
-//            // 计算误差并分散到邻近像素
-//            double quant_error = pixel_value - (num_lines_to_draw / static_cast<double>(totalLines) * 255);
-//            if (x + 1 < cols) error.at<float>(y, x + 1) += quant_error * 7 / 16;
-//            if (y + 1 < rows) {
-//                if (x > 0) error.at<float>(y + 1, x - 1) += quant_error * 3 / 16;
-//                error.at<float>(y + 1, x) += quant_error * 5 / 16;
-//                if (x + 1 < cols) error.at<float>(y + 1, x + 1) += quant_error * 1 / 16;
-//            }
-//        }
-//    }
-//}
-
-
-// 基于改进的模式法
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance, double imageHeight, double pixelHeight, int grayLevel, bool horizontal_lines) {
-//    Mat gray;
-//    float resize = 40;
-//    int totalLines = grayLevel * grayLevel + 1;  // 最大的线条数量
-
-//    // 定义模式矩阵
-//    int mode_matrix[4][4] = {
-//        {0, 8, 2, 10},
-//        {12, 4, 14, 6},
-//        {3, 11, 1, 9},
-//        {15, 7, 13, 5}
-//    };
-
-//    // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//    if (src.channels() == 3) {
-//        cvtColor(src, gray, COLOR_BGR2GRAY);
-//    } else {
-//        gray = src;
-//    }
-
-//    // 创建一个与原图像相同大小的空白图像
-//    dst = Mat::zeros(gray.size(), CV_8UC1);
-
-//    // 获取图像尺寸
-//    int rows = gray.rows;
-//    int cols = gray.cols;
-
-//    // 计算像素的实际物理尺寸（毫米）
-//    double pixel_height_mm = pixelHeight;
-//    double pixel_width_mm = pixelHeight;  // 假设图像宽度与高度的比例相同
-
-
-//    // 遍历图像并处理每个像素
-//    for (int y = 0; y < rows; ++y) {
-//        for (int x = 0; x < cols; ++x) {
-
-//            // 获取当前像素的灰度值
-//            double pixel_value = static_cast<float>(gray.at<uchar>(y, x));
-
-//            // 限制 pixel_value 在 0 到 255 之间
-//            pixel_value = min(max(pixel_value, 0.0), 255.0);
-
-//            // 计算灰度等级索引，线条数量与灰度值成反比
-//            int num_lines_to_draw = static_cast<int>((1.0f - (pixel_value / 255.0f)) * totalLines);
-
-//            // 将每个像素划分为更小的网格，并绘制线段
-//            int grid_size = grayLevel;  // 根据 grayLevel 来划分网格
-//            for (int i = 0; i < num_lines_to_draw; ++i) {
-//                int grid_row = i / grid_size;
-//                int grid_col = i % grid_size;
-
-//                // 使用模式矩阵选择绘制的位置
-//                int mode_value = mode_matrix[grid_row % 4][grid_col % 4];
-
-//                // 根据模式矩阵值决定是否绘制线条
-//                if (i < mode_value) {
-//                    // 计算线段的起始和终止位置（物理坐标）
-//                    double start_x_mm = x * pixel_width_mm + grid_col * (pixel_width_mm / grid_size);
-//                    double start_y_mm = y * pixel_height_mm + grid_row * (pixel_height_mm / grid_size);
-//                    double end_x_mm = start_x_mm + (horizontal_lines ? (pixel_width_mm / grid_size) : 0);
-//                    double end_y_mm = start_y_mm + (horizontal_lines ? 0 : (pixel_height_mm / grid_size));
-
-//                    // 绘制线段并存储
-//                    lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
-//                                     Point2f(end_x_mm * resize, end_y_mm * resize)});
-//                }
-//            }
-//        }
-//    }
-
-
-//}
-
-
-
-
-////离散灰度值
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance, double imageHeight, double LineDistance, int grayLevel, bool horizontal_lines) {
-//    Mat gray;
-//    std::vector<double> linDs;
-//    float resize = 40;
-
-//    // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//    if (src.channels() == 3) {
-//        cvtColor(src, gray, COLOR_BGR2GRAY);
-//    } else {
-//        gray = src;
-//    }
-
-//    // 创建一个与原图像相同大小的空白图像
-//    dst = Mat::zeros(gray.size(), CV_8UC1);
-
-//    // 获取图像尺寸
-//    int rows = gray.rows;
-//    int cols = gray.cols;
-
-//    // 创建一个浮点类型的矩阵来保存误差
-//    Mat errorMatrix = Mat::zeros(rows, cols, CV_32FC1);
-
-//    // 计算像素的实际物理尺寸（毫米）
-//    double pixel_height_mm = LineDistance;
-//    double pixel_width_mm = LineDistance;  // 假设图像宽度与高度的比例相同
-
-//    // 定义离散的灰度层级，根据灰度等级自动生成
-//    std::vector<int> gray_levels(grayLevel);
-//    for (int i = 0; i < grayLevel; ++i) {
-//        gray_levels[i] = static_cast<int>((255.0 / (grayLevel - 1)) * i);
-//    }
-
-//    // 根据量化后的灰度图像绘制线段
-//    for (int y = 0; y < rows; ++y) {
-//        for (int x = 0; x < cols; ++x) {
-
-//            // 获取当前像素的灰度值并加入误差
-//            double pixel_value = static_cast<float>(gray.at<uchar>(y, x)) + errorMatrix.at<float>(y, x);
-
-//            // 找到最接近的离散灰度值
-//            uchar quantized_value = gray_levels[0];
-//            for (int i = 1; i < gray_levels.size(); ++i) {
-//                if (std::abs(pixel_value - gray_levels[i]) < std::abs(pixel_value - quantized_value)) {
-//                    quantized_value = gray_levels[i];
-//                }
-//            }
-
-//            // 计算误差
-//            double error = pixel_value - quantized_value;
-
-//            // 使用 JJN 算法将误差扩散到相邻像素
-//            if (x + 1 < cols) errorMatrix.at<float>(y, x + 1) += error * 7 / 48.0f;
-//            if (x + 2 < cols) errorMatrix.at<float>(y, x + 2) += error * 5 / 48.0f;
-//            if (y + 1 < rows) {
-//                if (x - 2 >= 0) errorMatrix.at<float>(y + 1, x - 2) += error * 3 / 48.0f;
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 1, x - 1) += error * 5 / 48.0f;
-//                errorMatrix.at<float>(y + 1, x) += error * 7 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 1, x + 1) += error * 5 / 48.0f;
-//                if (x + 2 < cols) errorMatrix.at<float>(y + 1, x + 2) += error * 3 / 48.0f;
-//            }
-//            if (y + 2 < rows) {
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 2, x - 1) += error * 3 / 48.0f;
-//                errorMatrix.at<float>(y + 2, x) += error * 5 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 2, x + 1) += error * 3 / 48.0f;
-//            }
-
-//            // 根据量化后的像素值确定线段的数量或密度
-//            int num_lines = static_cast<int>((1.0f - quantized_value / 255.0f) * grayLevel);
-
-//            for (int i = 0; i < num_lines; ++i) {
-//                if (horizontal_lines) {
-//                    // 计算水平线的实际物理坐标（毫米）
-//                    double line_y_mm = y * pixel_height_mm + i * (pixel_height_mm / num_lines);
-//                    lines.push_back({Point2f(x * pixel_width_mm * resize, line_y_mm * resize), Point2f((x + 1) * pixel_width_mm * resize, line_y_mm * resize)});
-//                } else {
-//                    // 计算垂直线的实际物理坐标（毫米）
-//                    double line_x_mm = x * pixel_width_mm + i * (pixel_width_mm / num_lines);
-//                    lines.push_back({Point2f(line_x_mm * resize, y * pixel_height_mm * resize), Point2f(line_x_mm * resize, (y + 1) * pixel_height_mm * resize)});
-//                }
-//            }
-//        }
-//    }
-//}
-
-
-
-//去掉误差扩散
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance, double imageHeight, double LineDistance, int grayLevel, bool horizontal_lines) {
-//    Mat gray;
-//    float resize = 40;
-//    int totalLines = grayLevel * grayLevel + 1;  // 最大的线条数量
-
-//    // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//    if (src.channels() == 3) {
-//        cvtColor(src, gray, COLOR_BGR2GRAY);
-//    } else {
-//        gray = src;
-//    }
-
-//    // 创建一个与原图像相同大小的空白图像
-//    dst = Mat::zeros(gray.size(), CV_8UC1);
-
-//    // 获取图像尺寸
-//    int rows = gray.rows;
-//    int cols = gray.cols;
-
-//    // 创建一个浮点类型的矩阵来保存误差
-//    Mat errorMatrix = Mat::zeros(rows, cols, CV_32FC1);
-
-//    // 计算像素的实际物理尺寸（毫米）
-//    double pixel_height_mm = LineDistance;
-//    double pixel_width_mm = LineDistance;  // 假设图像宽度与高度的比例相同
-
-//    // 根据量化后的灰度图像绘制线段
-//    for (int y = 0; y < rows; ++y) {
-//        for (int x = 0; x < cols; ++x) {
-
-//            // 获取当前像素的灰度值并加入误差
-//            double pixel_value = static_cast<float>(gray.at<uchar>(y, x)) + errorMatrix.at<float>(y, x);
-
-//            // 限制 pixel_value 在 0 到 255 之间
-//            pixel_value = min(max(pixel_value, 0.0), 255.0);
-
-//            // 计算灰度等级索引，线条数量与灰度值成反比
-//            int num_lines_to_draw = static_cast<int>((1.0f - (pixel_value / 255.0f)) * totalLines);
-
-//            // 计算误差
-//            double quantized_value = num_lines_to_draw * (255.0 / totalLines);
-//            double error = pixel_value - quantized_value;
-
-//            //            // 使用 Floyd-Steinberg 算法将误差扩散到相邻像素
-//            //            if (x + 1 < cols) errorMatrix.at<float>(y, x + 1) += error * 7 / 16.0f;
-//            //            if (y + 1 < rows) {
-//            //                if (x > 0) errorMatrix.at<float>(y + 1, x - 1) += error * 3 / 16.0f;
-//            //                errorMatrix.at<float>(y + 1, x) += error * 5 / 16.0f;
-//            //                if (x + 1 < cols) errorMatrix.at<float>(y + 1, x + 1) += error * 1 / 16.0f;
-//            //            }
-
-//            // 将每个像素划分为更小的网格，并绘制线段
-//            int grid_size = grayLevel;  // 根据 grayLevel 来划分网格
-//            for (int i = 0; i < num_lines_to_draw; ++i) {
-//                int grid_row = i / grid_size;
-//                int grid_col = i % grid_size;
-
-//                // 计算线段的起始和终止位置（物理坐标）
-//                double start_x_mm = x * pixel_width_mm + grid_col * (pixel_width_mm / grid_size);
-//                double start_y_mm = y * pixel_height_mm + grid_row * (pixel_height_mm / grid_size);
-//                double end_x_mm = start_x_mm + (horizontal_lines ? (pixel_width_mm / grid_size) : 0);
-//                double end_y_mm = start_y_mm + (horizontal_lines ? 0 : (pixel_height_mm / grid_size));
-
-//                // 绘制线段
-//                lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
-//                                 Point2f(end_x_mm * resize, end_y_mm * resize)});
-//            }
-//        }
-//    }
-//}
-
-
-
-
-
-
-
-//以网格内的小网格为单位去画一条线,根据离散灰度等级决定线段的数量和长度
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance, double imageHeight, double LineDistance, int grayLevel, bool horizontal_lines) {
-//    Mat gray;
-//    float resize = 40;
-
-//    // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//    if (src.channels() == 3) {
-//        cvtColor(src, gray, COLOR_BGR2GRAY);
-//    } else {
-//        gray = src;
-//    }
-
-//    // 创建一个与原图像相同大小的空白图像
-//    dst = Mat::zeros(gray.size(), CV_8UC1);
-
-//    // 获取图像尺寸
-//    int rows = gray.rows;
-//    int cols = gray.cols;
-
-//    // 创建一个浮点类型的矩阵来保存误差
-//    Mat errorMatrix = Mat::zeros(rows, cols, CV_32FC1);
-
-//    // 计算像素的实际物理尺寸（毫米）
-//    double pixel_height_mm = LineDistance;
-//    double pixel_width_mm = LineDistance;  // 假设图像宽度与高度的比例相同
-
-//    // 根据输入的灰度层级生成离散的灰度值
-//    std::vector<int> gray_levels(grayLevel);
-//    for (int i = 0; i < grayLevel; ++i) {
-//        gray_levels[i] = static_cast<int>((255.0 / (grayLevel - 1)) * i);
-//    }
-
-//    // 根据量化后的灰度图像绘制线段
-//    for (int y = 0; y < rows; ++y) {
-//        for (int x = 0; x < cols; ++x) {
-
-//            // 获取当前像素的灰度值并加入误差
-//            double pixel_value = static_cast<float>(gray.at<uchar>(y, x)) + errorMatrix.at<float>(y, x);
-
-//            // 找到最接近的离散灰度值
-//            uchar quantized_value = gray_levels[0];
-//            for (int i = 1; i < gray_levels.size(); ++i) {
-//                if (std::abs(pixel_value - gray_levels[i]) < std::abs(pixel_value - quantized_value)) {
-//                    quantized_value = gray_levels[i];
-//                }
-//            }
-
-//            // 计算误差
-//            double error = pixel_value - quantized_value;
-
-//            // 使用 JJN 算法将误差扩散到相邻像素
-//            if (x + 1 < cols) errorMatrix.at<float>(y, x + 1) += error * 7 / 48.0f;
-//            if (x + 2 < cols) errorMatrix.at<float>(y, x + 2) += error * 5 / 48.0f;
-//            if (y + 1 < rows) {
-//                if (x - 2 >= 0) errorMatrix.at<float>(y + 1, x - 2) += error * 3 / 48.0f;
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 1, x - 1) += error * 5 / 48.0f;
-//                errorMatrix.at<float>(y + 1, x) += error * 7 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 1, x + 1) += error * 5 / 48.0f;
-//                if (x + 2 < cols) errorMatrix.at<float>(y + 1, x + 2) += error * 3 / 48.0f;
-//            }
-//            if (y + 2 < rows) {
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 2, x - 1) += error * 3 / 48.0f;
-//                errorMatrix.at<float>(y + 2, x) += error * 5 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 2, x + 1) += error * 3 / 48.0f;
-//            }
-
-//            // 将灰度值划分为灰度层级
-//            int gray_level_index = static_cast<int>((1.0f-(quantized_value / 255.0f)) * (grayLevel*grayLevel+1));
-
-//            // 每个像素划分为 grid_size x grid_size 的小网格
-//            int grid_size = static_cast<int>(grayLevel);  // 假设网格是方形的
-//            double grid_spacing_mm = pixel_width_mm / grid_size;
-
-//            // 根据灰度值决定要绘制的网格数
-//            int num_grids_to_draw = gray_level_index;
-
-//            // 绘制对应数量的网格线段
-//            for (int i = 0; i < num_grids_to_draw; ++i) {
-//                // 计算当前网格的位置
-//                int grid_row = i / grid_size;
-//                int grid_col = i % grid_size;
-
-//                // 计算线段的起始和终止位置（物理坐标）
-//                double start_x_mm = x * pixel_width_mm + grid_col * grid_spacing_mm;
-//                double start_y_mm = y * pixel_height_mm + grid_row * grid_spacing_mm;
-//                double end_x_mm = start_x_mm + (horizontal_lines ? grid_spacing_mm : 0);
-//                double end_y_mm = start_y_mm + (horizontal_lines ? 0 : grid_spacing_mm);
-
-//                lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
-//                                 Point2f(end_x_mm * resize, end_y_mm * resize)});
-//            }
-//        }
-//    }
-//}
-
-
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance, double imageHeight, double LineDistance, int grayLevel, bool horizontal_lines) {
-//    Mat gray;
-//    float resize = 40;
-
-//    // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//    if (src.channels() == 3) {
-//        cvtColor(src, gray, COLOR_BGR2GRAY);
-//    } else {
-//        gray = src;
-//    }
-
-//    // 创建一个与原图像相同大小的空白图像
-//    dst = Mat::zeros(gray.size(), CV_8UC1);
-
-//    // 获取图像尺寸
-//    int rows = gray.rows;
-//    int cols = gray.cols;
-
-//    // 创建一个浮点类型的矩阵来保存误差
-//    Mat errorMatrix = Mat::zeros(rows, cols, CV_32FC1);
-
-//    // 计算像素的实际物理尺寸（毫米）
-//    double pixel_height_mm = LineDistance;
-//    double pixel_width_mm = LineDistance;  // 假设图像宽度与高度的比例相同
-
-//    // 定义离散的灰度层级，总共 grayLevel * grayLevel + 1 层，其中最后一层是不画任何线段
-//    int totalLevels = grayLevel * grayLevel + 1;
-//    std::vector<int> gray_levels(totalLevels);
-//    for (int i = 0; i < totalLevels - 1; ++i) {
-//        gray_levels[i] = static_cast<int>((255.0 / (totalLevels - 2)) * i);
-//    }
-//    gray_levels[totalLevels - 1] = 255; // 最后一层灰度值是255，对应不绘制任何线段
-
-//    // 根据量化后的灰度图像绘制线段
-//    for (int y = 0; y < rows; ++y) {
-//        for (int x = 0; x < cols; ++x) {
-
-//            // 获取当前像素的灰度值并加入误差
-//            double pixel_value = static_cast<float>(gray.at<uchar>(y, x)) + errorMatrix.at<float>(y, x);
-
-//            // 找到最接近的离散灰度值
-//            int gray_level_index = 0;
-//            for (int i = 1; i < gray_levels.size(); ++i) {
-//                if (std::abs(pixel_value - gray_levels[i]) < std::abs(pixel_value - gray_levels[gray_level_index])) {
-//                    gray_level_index = i;
-//                }
-//            }
-
-//            // 计算误差
-//            double error = pixel_value - gray_levels[gray_level_index];
-
-//            // 使用 JJN 算法将误差扩散到相邻像素
-//            if (x + 1 < cols) errorMatrix.at<float>(y, x + 1) += error * 7 / 48.0f;
-//            if (x + 2 < cols) errorMatrix.at<float>(y, x + 2) += error * 5 / 48.0f;
-//            if (y + 1 < rows) {
-//                if (x - 2 >= 0) errorMatrix.at<float>(y + 1, x - 2) += error * 3 / 48.0f;
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 1, x - 1) += error * 5 / 48.0f;
-//                errorMatrix.at<float>(y + 1, x) += error * 7 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 1, x + 1) += error * 5 / 48.0f;
-//                if (x + 2 < cols) errorMatrix.at<float>(y + 1, x + 2) += error * 3 / 48.0f;
-//            }
-//            if (y + 2 < rows) {
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 2, x - 1) += error * 3 / 48.0f;
-//                errorMatrix.at<float>(y + 2, x) += error * 5 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 2, x + 1) += error * 3 / 48.0f;
-//            }
-
-//            // 如果当前灰度等级是最高的，跳过绘制
-//            if (gray_level_index == totalLevels - 1) {
-//                continue;
-//            }
-
-//            // 将像素划分为 grayLevel x grayLevel 的小网格
-//            int grid_size = grayLevel;  // 每个像素划分为 grayLevel x grayLevel 的小网格
-//            double grid_spacing_mm = pixel_width_mm / grid_size;
-
-//            // 计算需要绘制的小网格数量
-//            int num_grids_to_draw = gray_level_index;
-
-//            // 优先绘制对角线的网格线段
-//            std::vector<std::pair<int, int>> grid_positions;
-//            for (int i = 0; i < grid_size; ++i) {
-//                grid_positions.push_back({i, i});
-//            }
-//            for (int i = 0; i < grid_size; ++i) {
-//                for (int j = 0; j < grid_size; ++j) {
-//                    if (i != j) {
-//                        grid_positions.push_back({i, j});
-//                    }
-//                }
-//            }
-
-//            // 绘制对应数量的网格线段
-//            for (int i = 0; i < num_grids_to_draw; ++i) {
-//                int grid_row = grid_positions[i].first;
-//                int grid_col = grid_positions[i].second;
-
-//                double start_x_mm = x * pixel_width_mm + grid_col * grid_spacing_mm;
-//                double start_y_mm = y * pixel_height_mm + grid_row * grid_spacing_mm;
-//                double end_x_mm = start_x_mm + (horizontal_lines ? grid_spacing_mm : 0);
-//                double end_y_mm = start_y_mm + (horizontal_lines ? 0 : grid_spacing_mm);
-
-//                lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
-//                                 Point2f(end_x_mm * resize, end_y_mm * resize)});
-//            }
-//        }
-//    }
-//}
-
-
-////根据灰度等级决定线段的数量和长度
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance,double imageHeight , double LineDistance, int grayLevel,bool horizontal_lines) {
-//    Mat gray;
-//    std::vector<double> linDs;
-//    float resize = 40;
-
-//    // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//    if (src.channels() == 3) {
-//        cvtColor(src, gray, COLOR_BGR2GRAY);
-//    } else {
-//        gray = src;
-//    }
-
-//    // 创建一个与原图像相同大小的空白图像
-//    dst = Mat::zeros(gray.size(), CV_8UC1);
-
-//    // 获取图像尺寸
-//    int rows = gray.rows;
-//    int cols = gray.cols;
-
-//    // 创建一个浮点类型的矩阵来保存误差
-//    Mat errorMatrix = Mat::zeros(rows, cols, CV_32FC1);
-
-//    // 计算像素的实际物理尺寸（毫米）
-//    double pixel_height_mm = LineDistance;
-//    double pixel_width_mm = LineDistance;  // 假设图像宽度与高度的比例相同
-
-//    // 根据量化后的灰度图像绘制线段
-//    for (int y = 0; y < rows; ++y) {
-//        for (int x = 0; x < cols; ++x) {
-
-//            // 获取当前像素的灰度值并加入误差
-//            double pixel_value = static_cast<float>(gray.at<uchar>(y, x)) + errorMatrix.at<float>(y, x);
-
-//            // 将像素值量化为0到255之间的整数值
-//            uchar quantized_value = static_cast<uchar>(std::round(pixel_value / 255.0f) * 255);
-
-//            // 计算误差
-//            double error = pixel_value - quantized_value;
-
-//            // 使用 JJN 算法将误差扩散到相邻像素
-//            if (x + 1 < cols) errorMatrix.at<float>(y, x + 1) += error * 7 / 48.0f;
-//            if (x + 2 < cols) errorMatrix.at<float>(y, x + 2) += error * 5 / 48.0f;
-//            if (y + 1 < rows) {
-//                if (x - 2 >= 0) errorMatrix.at<float>(y + 1, x - 2) += error * 3 / 48.0f;
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 1, x - 1) += error * 5 / 48.0f;
-//                errorMatrix.at<float>(y + 1, x) += error * 7 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 1, x + 1) += error * 5 / 48.0f;
-//                if (x + 2 < cols) errorMatrix.at<float>(y + 1, x + 2) += error * 3 / 48.0f;
-//            }
-//            if (y + 2 < rows) {
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 2, x - 1) += error * 3 / 48.0f;
-//                errorMatrix.at<float>(y + 2, x) += error * 5 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 2, x + 1) += error * 3 / 48.0f;
-//            }
-
-//            // 根据量化后的像素值确定线段的数量和长度
-//            int num_lines = static_cast<int>((1.0f - quantized_value / 255.0f) * grayLevel);
-//            double line_length_factor = quantized_value / 255.0f; // 线段长度根据灰度值变化
-
-//            for (int i = 0; i < num_lines; ++i) {
-//                if (horizontal_lines) {
-//                    // 计算水平线的实际物理坐标和长度（毫米）
-//                    double line_y_mm = y * pixel_height_mm + i * (pixel_height_mm / num_lines);
-//                    double line_length = pixel_width_mm * (1.0 - line_length_factor); // 线段长度与灰度值成反比
-//                    lines.push_back({Point2f(x * pixel_width_mm * resize, line_y_mm * resize), Point2f((x * pixel_width_mm + line_length) * resize, line_y_mm * resize)});
-//                } else {
-//                    // 计算垂直线的实际物理坐标和长度（毫米）
-//                    double line_x_mm = x * pixel_width_mm + i * (pixel_width_mm / num_lines);
-//                    double line_length = pixel_height_mm * (1.0 - line_length_factor); // 线段长度与灰度值成反比
-//                    lines.push_back({Point2f(line_x_mm * resize, y * pixel_height_mm * resize), Point2f(line_x_mm * resize, (y * pixel_height_mm + line_length) * resize)});
-//                }
-//            }
-//        }
-//    }
-//}
-
-
-////以像素为单位去分割
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance,double imageHeight , double LineDistance, int grayLevel,bool horizontal_lines) {
-//    Mat gray;
-//       std::vector<double> linDs;
-//       float resize=40;
-//       // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//       if (src.channels() == 3) {
-//           cvtColor(src, gray, COLOR_BGR2GRAY);
-//       } else {
-//           gray = src;
-//       }
-
-//       // 创建一个与原图像相同大小的空白图像
-//       dst = Mat::zeros(gray.size(), CV_8UC1);
-
-//       // 获取图像尺寸
-//       int rows = gray.rows;
-//       int cols = gray.cols;
-
-//       // 创建一个浮点类型的矩阵来保存误差
-//       Mat errorMatrix = Mat::zeros(rows, cols, CV_32FC1);
-
-//       // 计算像素的实际物理尺寸（毫米）
-//       double pixel_height_mm = LineDistance;
-//       double pixel_width_mm = LineDistance;  // 假设图像宽度与高度的比例相同
-
-//       // 根据量化后的灰度图像绘制线段
-//       for (int y = 0; y < rows; ++y) {
-//           for (int x = 0; x < cols; ++x) {
-
-//               // 获取当前像素的灰度值并加入误差
-//               double pixel_value = static_cast<float>(gray.at<uchar>(y, x)) + errorMatrix.at<float>(y, x);
-
-//               // 将像素值量化为0到255之间的整数值
-//               uchar quantized_value = static_cast<uchar>(std::round(pixel_value / 255.0f) * 255);
-
-//               // 计算误差
-//               double error = pixel_value - quantized_value;
-
-//               // 将误差扩散到相邻像素
-//               if (x + 1 < cols) errorMatrix.at<float>(y, x + 1) += error * 7 / 16.0f;
-//               if (y + 1 < rows) {
-//                   if (x > 0) errorMatrix.at<float>(y + 1, x - 1) += error * 3 / 16.0f;
-//                   errorMatrix.at<float>(y + 1, x) += error * 5 / 16.0f;
-//                   if (x + 1 < cols) errorMatrix.at<float>(y + 1, x + 1) += error * 1 / 16.0f;
-//               }
-
-
-//               // 根据量化后的像素值确定线段的数量或密度
-//               int num_lines = static_cast<int>((1.0f - quantized_value / 255.0f) * grayLevel);
-
-//               for (int i = 0; i < num_lines; ++i) {
-//                   if (horizontal_lines) {
-//                       // 计算水平线的实际物理坐标（毫米）
-//                       double line_y_mm = y * pixel_height_mm + i * (pixel_height_mm / num_lines);
-//                       lines.push_back({Point2f(x * pixel_width_mm*resize, line_y_mm*resize), Point2f((x + 1) * pixel_width_mm*resize, line_y_mm*resize)});
-//                       //linDs.push_back(pixel_height_mm / num_lines);
-//                   } else {
-//                       // 计算垂直线的实际物理坐标（毫米）
-//                       double line_x_mm = x * pixel_width_mm + i * (pixel_width_mm / num_lines);
-//                       lines.push_back({Point2f(line_x_mm, y * pixel_height_mm), Point2f(line_x_mm, (y + 1) * pixel_height_mm)});
-//                       //linDs.push_back(pixel_width_mm / num_lines);
-//                   }
-//               }
-//           }
-//       }
-
-//       // 使用 std::min_element 查找最小值
-//       //auto minIt = std::min_element(linDs.begin(), linDs.end());
-
-//       // 解引用迭代器获取最小值
-//       //line_distance = *minIt;
-//}
-
-
-
-
-
-
-
-////以网格内的小网格为单位去画一条线
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance, double imageHeight, double LineDistance, int grayLevel, bool horizontal_lines) {
-//    Mat gray;
-//    float resize = 40;
-//    grayLevel=grayLevel*grayLevel+1;
-//    // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//    if (src.channels() == 3) {
-//        cvtColor(src, gray, COLOR_BGR2GRAY);
-//    } else {
-//        gray = src;
-//    }
-
-//    // 创建一个与原图像相同大小的空白图像
-//    dst = Mat::zeros(gray.size(), CV_8UC1);
-
-//    // 获取图像尺寸
-//    int rows = gray.rows;
-//    int cols = gray.cols;
-
-//    // 创建一个浮点类型的矩阵来保存误差
-//    Mat errorMatrix = Mat::zeros(rows, cols, CV_32FC1);
-
-//    // 计算像素的实际物理尺寸（毫米）
-//    double pixel_height_mm = LineDistance;
-//    double pixel_width_mm = LineDistance;  // 假设图像宽度与高度的比例相同
-
-//    // 根据量化后的灰度图像绘制线段
-//    for (int y = 0; y < rows; ++y) {
-//        for (int x = 0; x < cols; ++x) {
-
-//            // 获取当前像素的灰度值并加入误差
-//            double pixel_value = static_cast<float>(gray.at<uchar>(y, x)) + errorMatrix.at<float>(y, x);
-
-//            // 将像素值量化为0到255之间的整数值
-//            uchar quantized_value = static_cast<uchar>(std::round(pixel_value / 255.0f) * 255);
-
-//            // 计算误差
-//            double error = pixel_value - quantized_value;
-
-//            // 使用 JJN 算法将误差扩散到相邻像素
-//            if (x + 1 < cols) errorMatrix.at<float>(y, x + 1) += error * 7 / 48.0f;
-//            if (x + 2 < cols) errorMatrix.at<float>(y, x + 2) += error * 5 / 48.0f;
-//            if (y + 1 < rows) {
-//                if (x - 2 >= 0) errorMatrix.at<float>(y + 1, x - 2) += error * 3 / 48.0f;
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 1, x - 1) += error * 5 / 48.0f;
-//                errorMatrix.at<float>(y + 1, x) += error * 7 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 1, x + 1) += error * 5 / 48.0f;
-//                if (x + 2 < cols) errorMatrix.at<float>(y + 1, x + 2) += error * 3 / 48.0f;
-//            }
-//            if (y + 2 < rows) {
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 2, x - 1) += error * 3 / 48.0f;
-//                errorMatrix.at<float>(y + 2, x) += error * 5 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 2, x + 1) += error * 3 / 48.0f;
-//            }
-
-//            // 将灰度值划分为灰度层级
-//            int gray_level_index = static_cast<int>((1.0f-(quantized_value / 255.0f)) * grayLevel);
-
-//            // 根据灰度值决定要绘制的网格数
-//            int grid_size = static_cast<int>(std::sqrt(grayLevel-1));  // 假设网格是方形的
-//            int num_grids_to_draw = gray_level_index;
-
-//            // 绘制对应数量的网格线段
-//            for (int i = 0; i < num_grids_to_draw; ++i) {
-//                // 计算当前网格的位置
-//                int grid_row = i / grid_size;
-//                int grid_col = i % grid_size;
-
-//                // 计算线段的起始和终止位置（物理坐标）
-//                double start_x_mm = x * pixel_width_mm + grid_col * (pixel_width_mm / grid_size);
-//                double start_y_mm = y * pixel_height_mm + grid_row * (pixel_height_mm / grid_size);
-//                double end_x_mm = start_x_mm + (horizontal_lines ? (pixel_width_mm / grid_size) : 0);
-//                double end_y_mm = start_y_mm + (horizontal_lines ? 0 : (pixel_height_mm / grid_size));
-
-//                lines.push_back({Point2f(start_x_mm * resize, start_y_mm * resize),
-//                                 Point2f(end_x_mm * resize, end_y_mm * resize)});
-//            }
-//        }
-//    }
-//}
-
-
-//以像素为单位进行网格划分JJN
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance,double imageHeight , double LineDistance, int grayLevel,bool horizontal_lines) {
-//    Mat gray;
-//    std::vector<double> linDs;
-//    float resize = 40;
-
-//    // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//    if (src.channels() == 3) {
-//        cvtColor(src, gray, COLOR_BGR2GRAY);
-//    } else {
-//        gray = src;
-//    }
-
-//    // 创建一个与原图像相同大小的空白图像
-//    dst = Mat::zeros(gray.size(), CV_8UC1);
-
-//    // 获取图像尺寸
-//    int rows = gray.rows;
-//    int cols = gray.cols;
-
-//    // 创建一个浮点类型的矩阵来保存误差
-//    Mat errorMatrix = Mat::zeros(rows, cols, CV_32FC1);
-
-//    // 计算像素的实际物理尺寸（毫米）
-//    double pixel_height_mm = LineDistance;
-//    double pixel_width_mm = LineDistance;  // 假设图像宽度与高度的比例相同
-
-//    // 根据量化后的灰度图像绘制线段
-//    for (int y = 0; y < rows; ++y) {
-//        for (int x = 0; x < cols; ++x) {
-
-//            // 获取当前像素的灰度值并加入误差
-//            double pixel_value = static_cast<float>(gray.at<uchar>(y, x)) + errorMatrix.at<float>(y, x);
-
-//            // 将像素值量化为0到255之间的整数值
-//            uchar quantized_value = static_cast<uchar>(std::round(pixel_value / 255.0f) * 255);
-
-//            // 计算误差
-//            double error = pixel_value - quantized_value;
-
-//            // 使用 JJN 算法将误差扩散到相邻像素
-//            if (x + 1 < cols) errorMatrix.at<float>(y, x + 1) += error * 7 / 48.0f;
-//            if (x + 2 < cols) errorMatrix.at<float>(y, x + 2) += error * 5 / 48.0f;
-//            if (y + 1 < rows) {
-//                if (x - 2 >= 0) errorMatrix.at<float>(y + 1, x - 2) += error * 3 / 48.0f;
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 1, x - 1) += error * 5 / 48.0f;
-//                errorMatrix.at<float>(y + 1, x) += error * 7 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 1, x + 1) += error * 5 / 48.0f;
-//                if (x + 2 < cols) errorMatrix.at<float>(y + 1, x + 2) += error * 3 / 48.0f;
-//            }
-//            if (y + 2 < rows) {
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 2, x - 1) += error * 3 / 48.0f;
-//                errorMatrix.at<float>(y + 2, x) += error * 5 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 2, x + 1) += error * 3 / 48.0f;
-//            }
-
-//            // 根据量化后的像素值确定线段的数量或密度
-//            int num_lines = static_cast<int>((1.0f - quantized_value / 255.0f) * grayLevel);
-
-//            for (int i = 0; i < num_lines; ++i) {
-//                if (horizontal_lines) {
-//                    // 计算水平线的实际物理坐标（毫米）
-//                    double line_y_mm = y * pixel_height_mm + i * (pixel_height_mm / num_lines);
-//                    lines.push_back({Point2f(x * pixel_width_mm * resize, line_y_mm * resize), Point2f((x + 1) * pixel_width_mm * resize, line_y_mm * resize)});
-//                } else {
-//                    // 计算垂直线的实际物理坐标（毫米）
-//                    double line_x_mm = x * pixel_width_mm + i * (pixel_width_mm / num_lines);
-//                    lines.push_back({Point2f(line_x_mm, y * pixel_height_mm), Point2f(line_x_mm, (y + 1) * pixel_height_mm)});
-//                }
-//            }
-//        }
-//    }
-//}
-
-//***********************************************************************************************************************
-
-//放大图像再进行网格划分
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance, double imageHeight, double LineDistance, int grayLevel, bool horizontal_lines) {
-//    Mat gray;
-//    std::vector<double> linDs;
-
-//    int lineNum=1;
-//    // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//    if (src.channels() == 3) {
-//        cvtColor(src, gray, COLOR_BGR2GRAY);
-//    } else {
-//        gray = src;
-//    }
-
-//    // 创建一个与原图像相同大小的空白图像
-//    dst = Mat::zeros(gray.size(), CV_32FC1);
-
-//    // 获取图像尺寸
-//    int rows = gray.rows;
-//    int cols = gray.cols;
-
-//    // 创建一个矩阵来存储格子的误差
-//    Mat errorMatrix = Mat::zeros(rows, cols, CV_32FC1);
-
-//    // Jarvis-Judice-Ninke 误差扩散矩阵 (5x3)
-//    double diffusionMatrix[3][5] = {
-//        {0, 0, 0, 7, 5},
-//        {3, 5, 7, 5, 3},
-//        {1, 3, 5, 3, 1}
-//    };
-
-
-//    double diffusionSum = 15.0f; // J-J-N 矩阵的总权重
-
-//    // 根据量化后的灰度图像绘制线段
-//    for (double y = 0; y < rows; y += grayLevel) {
-//        for (double x = 0; x < cols; x += grayLevel) {
-//            // 计算当前网格的实际宽度和高度
-//            int grid_width = min(static_cast<int>(grayLevel), cols - static_cast<int>(x));
-//            int grid_height =min(static_cast<int>(grayLevel), rows - static_cast<int>(y));
-
-//            // 获取当前网格中的像素区域
-//            Rect grid(static_cast<int>(x), static_cast<int>(y), grid_width, grid_height);
-//            Mat roi = gray(grid);
-
-//            // 计算当前网格的平均灰度值并加入误差
-//            Scalar avg_color = mean(roi);
-//            float avg_value_with_error = avg_color[0] + errorMatrix.at<float>(y, x);
-
-//            // 将平均灰度值量化为0到255之间的整数值
-//            uchar quantized_value = static_cast<uchar>(std::round(avg_value_with_error / 255.0f) * 255);
-
-//            // 计算误差
-//            float error = avg_value_with_error - quantized_value;
-
-//            // 将误差扩散到相邻格子（使用 J-J-N 矩阵）
-//            for (int dy = 0; dy < 3; ++dy) {
-//                for (int dx = -2; dx < 3; ++dx) {
-//                    int nx = x + dx * grayLevel;
-//                    int ny = y + dy * grayLevel;
-//                    if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
-//                        errorMatrix.at<float>(ny, nx) += (error * diffusionMatrix[dy][dx + 2]) / diffusionSum;
-//                    }
-//                }
-//            }
-
-//            // 根据量化后的平均灰度值确定线段的数量或密度
-//            int num_lines = static_cast<int>((1.0f - quantized_value / 255.0f) * (lineNum));
-
-//            // 确保至少有一条线段
-//            //num_lines = max(num_lines, 1);
-
-//            // 绘制线段，考虑灰度调整线宽
-//            for (int i = 0; i < num_lines; ++i) {
-//                if (horizontal_lines) {
-//                    // 绘制水平线
-//                    int line_y = static_cast<int>(y) + i * (grid_height / num_lines);
-//                    lines.push_back({Point2f((x*LineDistance), (line_y*LineDistance)), Point2f(((x + grid_width)*LineDistance), (line_y*LineDistance))});
-//                } else {
-//                    // 绘制垂直线
-//                    int line_x = static_cast<int>(x) + i * (grid_width / num_lines);
-//                    lines.push_back({Point(line_x*LineDistance, y*LineDistance), Point(line_x*LineDistance, (y + grid_height)*LineDistance)});
-//                }
-//            }
-//        }
-//    }
-
-//    // 使用 std::min_element 查找最小值
-//    //auto minIt = std::min_element(linDs.begin(), linDs.end());
-
-//    // 解引用迭代器获取最小值
-//    //line_distance = *minIt;
-//}
-
-
-////并非全是横线
-//void floydsetinTool::halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst, double &line_distance,double imageHeight , double LineDistance, int grayLevel,bool horizontal_lines) {
-//    Mat gray;
-//    std::vector<double> linDs;
-//    float resize = 40;
-
-//    // 检查图像的通道数，如果是彩色图像则转换为灰度图
-//    if (src.channels() == 3) {
-//        cvtColor(src, gray, COLOR_BGR2GRAY);
-//    } else {
-//        gray = src;
-//    }
-
-//    // 创建一个与原图像相同大小的空白图像
-//    dst = Mat::zeros(gray.size(), CV_8UC1);
-
-//    // 获取图像尺寸
-//    int rows = gray.rows;
-//    int cols = gray.cols;
-
-//    // 创建一个浮点类型的矩阵来保存误差
-//    Mat errorMatrix = Mat::zeros(rows, cols, CV_32FC1);
-
-//    // 计算像素的实际物理尺寸（毫米）
-//    double pixel_height_mm = LineDistance;
-//    double pixel_width_mm = LineDistance;  // 假设图像宽度与高度的比例相同
-
-//    // 根据量化后的灰度图像绘制线段
-//    for (int y = 0; y < rows; ++y) {
-//        for (int x = 0; x < cols; ++x) {
-
-//            // 获取当前像素的灰度值并加入误差
-//            double pixel_value = static_cast<float>(gray.at<uchar>(y, x)) + errorMatrix.at<float>(y, x);
-
-//            // 将像素值量化为0到255之间的整数值
-//            uchar quantized_value = static_cast<uchar>(std::round(pixel_value / 255.0f) * 255);
-
-//            // 计算误差
-//            double error = pixel_value - quantized_value;
-
-//            // 使用 JJN 算法将误差扩散到相邻像素
-//            if (x + 1 < cols) errorMatrix.at<float>(y, x + 1) += error * 7 / 48.0f;
-//            if (x + 2 < cols) errorMatrix.at<float>(y, x + 2) += error * 5 / 48.0f;
-//            if (y + 1 < rows) {
-//                if (x - 2 >= 0) errorMatrix.at<float>(y + 1, x - 2) += error * 3 / 48.0f;
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 1, x - 1) += error * 5 / 48.0f;
-//                errorMatrix.at<float>(y + 1, x) += error * 7 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 1, x + 1) += error * 5 / 48.0f;
-//                if (x + 2 < cols) errorMatrix.at<float>(y + 1, x + 2) += error * 3 / 48.0f;
-//            }
-//            if (y + 2 < rows) {
-//                if (x - 1 >= 0) errorMatrix.at<float>(y + 2, x - 1) += error * 3 / 48.0f;
-//                errorMatrix.at<float>(y + 2, x) += error * 5 / 48.0f;
-//                if (x + 1 < cols) errorMatrix.at<float>(y + 2, x + 1) += error * 3 / 48.0f;
-//            }
-
-//            // 根据灰度值选择不同的划线方式
-//            if (quantized_value < 85) { // 深色区域
-//                // 深色区域 - 密集短线
-//                int num_lines = static_cast<int>((1.0f - quantized_value / 255.0f) * grayLevel);
-//                for (int i = 0; i < num_lines; ++i) {
-//                    double line_length = pixel_width_mm * 0.3; // 短线
-//                    double line_y_mm = y * pixel_height_mm + i * (pixel_height_mm / num_lines);
-//                    lines.push_back({Point2f(x * pixel_width_mm * resize, line_y_mm * resize), Point2f((x * pixel_width_mm + line_length) * resize, line_y_mm * resize)});
-//                }
-//            } else if (quantized_value < 170) { // 中间灰度区域
-//                // 中间灰度区域 - 交错线
-//                int num_lines = static_cast<int>((1.0f - quantized_value / 255.0f) * grayLevel);
-//                for (int i = 0; i < num_lines; ++i) {
-//                    double line_x_mm = x * pixel_width_mm + i * (pixel_width_mm / num_lines);
-//                    double line_y_mm = y * pixel_height_mm + i * (pixel_height_mm / num_lines);
-//                    lines.push_back({Point2f(line_x_mm * resize, line_y_mm * resize), Point2f((line_x_mm + 0.5) * resize, (line_y_mm + 0.5) * resize)});
-//                }
-//            } else { // 浅色区域
-//                // 浅色区域 - 长线
-//                int num_lines = static_cast<int>((1.0f - quantized_value / 255.0f) * grayLevel);
-//                for (int i = 0; i < num_lines; ++i) {
-//                    double line_length = pixel_width_mm * 0.8; // 长线
-//                    double line_y_mm = y * pixel_height_mm + i * (pixel_height_mm / num_lines);
-//                    lines.push_back({Point2f(x * pixel_width_mm * resize, line_y_mm * resize), Point2f((x * pixel_width_mm + line_length) * resize, line_y_mm * resize)});
 //                }
 //            }
 //        }

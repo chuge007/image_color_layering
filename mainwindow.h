@@ -22,8 +22,7 @@ public:
 private slots:
     void loadImage();
     void analyzeImage();
-    void saveAs();
-    void save();
+
     void exportVectorImage();
     void exportGrayImage();
     void colorSaturationChanged(int index);
@@ -34,6 +33,11 @@ private slots:
     void pBdisplayImage2();
     void pBdisplayImage3();
     void pBdisplayImage4();
+
+    void dSBcAdjustmentCoefficient(double value);
+    void dSBmAdjustmentCoefficient(double value);
+    void dSByAdjustmentCoefficient(double value);
+    void dSBkAdjustmentCoefficient(double value);
 
     void saveAsScheme();
     void saveScheme();
@@ -51,7 +55,7 @@ private:
 
     cv::Mat OriginalImage;
     cv::Mat ProcessImage;
-    std::vector<Mat> vecRgb, vecCmyk,vecCmykRgb;
+    std::vector<Mat> vecRgb, vecCmyk,vecCmykRgb,Contrast;
 
     floydsetinTool* floydsetin;
     Scheme* scheme;
@@ -66,7 +70,7 @@ private:
     double imageHeight;
     double pixelGridHeight;
     //double colorSaturation;
-    QVector <double> colorSaturationLIst;
+    QVector <double> colorSaturationList;
     QVector <bool>   colorLayerList;
     static cv::Mat img, img_resized;
     static void  onMouse(int event, int x, int y, int flags, void* userdata);
@@ -74,7 +78,7 @@ private:
 
     void init();
     void displayImage(const cv::Mat &image, QLabel *label);
-    int selcetLayre(vector<int> &color);
+    void selcetLayre(vector<int> &color);
     void loadScheme(const QString &filePath);
     void save_setting(const QString &key, const QVariant &value);
 };

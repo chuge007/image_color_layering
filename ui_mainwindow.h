@@ -20,6 +20,7 @@
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QPushButton>
+#include <QtWidgets/QRadioButton>
 #include <QtWidgets/QSlider>
 #include <QtWidgets/QSpinBox>
 #include <QtWidgets/QStatusBar>
@@ -68,6 +69,7 @@ public:
     QLabel *label_11;
     QSpinBox *sbGrayLevel;
     QLabel *label_14;
+    QRadioButton *rBisWithMatrix;
     QCheckBox *cBSelectCorR;
     QCheckBox *cBSelectMorG;
     QCheckBox *cBSelectYorB;
@@ -138,15 +140,23 @@ public:
         dSBcAdjustmentCoefficient = new QDoubleSpinBox(centralWidget);
         dSBcAdjustmentCoefficient->setObjectName(QString::fromUtf8("dSBcAdjustmentCoefficient"));
         dSBcAdjustmentCoefficient->setGeometry(QRect(400, 280, 62, 22));
+        dSBcAdjustmentCoefficient->setMaximum(3.000000000000000);
+        dSBcAdjustmentCoefficient->setSingleStep(0.010000000000000);
         dSBmAdjustmentCoefficient = new QDoubleSpinBox(centralWidget);
         dSBmAdjustmentCoefficient->setObjectName(QString::fromUtf8("dSBmAdjustmentCoefficient"));
         dSBmAdjustmentCoefficient->setGeometry(QRect(600, 280, 62, 22));
+        dSBmAdjustmentCoefficient->setMaximum(3.000000000000000);
+        dSBmAdjustmentCoefficient->setSingleStep(0.010000000000000);
         dSByAdjustmentCoefficient = new QDoubleSpinBox(centralWidget);
         dSByAdjustmentCoefficient->setObjectName(QString::fromUtf8("dSByAdjustmentCoefficient"));
         dSByAdjustmentCoefficient->setGeometry(QRect(400, 470, 62, 22));
+        dSByAdjustmentCoefficient->setMaximum(3.000000000000000);
+        dSByAdjustmentCoefficient->setSingleStep(0.010000000000000);
         dSBkAdjustmentCoefficient = new QDoubleSpinBox(centralWidget);
         dSBkAdjustmentCoefficient->setObjectName(QString::fromUtf8("dSBkAdjustmentCoefficient"));
         dSBkAdjustmentCoefficient->setGeometry(QRect(590, 470, 62, 22));
+        dSBkAdjustmentCoefficient->setMaximum(3.000000000000000);
+        dSBkAdjustmentCoefficient->setSingleStep(0.010000000000000);
         pBsaveScheme = new QPushButton(centralWidget);
         pBsaveScheme->setObjectName(QString::fromUtf8("pBsaveScheme"));
         pBsaveScheme->setGeometry(QRect(460, 18, 75, 24));
@@ -236,6 +246,10 @@ public:
         label_14 = new QLabel(groupBox);
         label_14->setObjectName(QString::fromUtf8("label_14"));
         label_14->setGeometry(QRect(370, 20, 54, 21));
+        rBisWithMatrix = new QRadioButton(groupBox);
+        rBisWithMatrix->setObjectName(QString::fromUtf8("rBisWithMatrix"));
+        rBisWithMatrix->setGeometry(QRect(580, 50, 89, 21));
+        rBisWithMatrix->setChecked(true);
         cBSelectCorR = new QCheckBox(centralWidget);
         cBSelectCorR->setObjectName(QString::fromUtf8("cBSelectCorR"));
         cBSelectCorR->setGeometry(QRect(480, 140, 71, 16));
@@ -347,6 +361,7 @@ public:
 
         label_11->setText(QApplication::translate("MainWindow", "\347\233\264\347\272\277\347\261\273\345\236\213\357\274\232", nullptr));
         label_14->setText(QApplication::translate("MainWindow", "\347\201\260\345\272\246\345\261\202\347\272\247\357\274\232", nullptr));
+        rBisWithMatrix->setText(QApplication::translate("MainWindow", "\351\253\230\346\225\260\346\215\256\346\250\241\345\274\217", nullptr));
         cBSelectCorR->setText(QString());
         cBSelectMorG->setText(QString());
         cBSelectYorB->setText(QString());

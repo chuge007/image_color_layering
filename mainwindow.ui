@@ -188,6 +188,12 @@ border: 1px solid black;</string>
       <height>22</height>
      </rect>
     </property>
+    <property name="maximum">
+     <double>3.000000000000000</double>
+    </property>
+    <property name="singleStep">
+     <double>0.010000000000000</double>
+    </property>
    </widget>
    <widget class="QDoubleSpinBox" name="dSBmAdjustmentCoefficient">
     <property name="geometry">
@@ -197,6 +203,12 @@ border: 1px solid black;</string>
       <width>62</width>
       <height>22</height>
      </rect>
+    </property>
+    <property name="maximum">
+     <double>3.000000000000000</double>
+    </property>
+    <property name="singleStep">
+     <double>0.010000000000000</double>
     </property>
    </widget>
    <widget class="QDoubleSpinBox" name="dSByAdjustmentCoefficient">
@@ -208,6 +220,12 @@ border: 1px solid black;</string>
       <height>22</height>
      </rect>
     </property>
+    <property name="maximum">
+     <double>3.000000000000000</double>
+    </property>
+    <property name="singleStep">
+     <double>0.010000000000000</double>
+    </property>
    </widget>
    <widget class="QDoubleSpinBox" name="dSBkAdjustmentCoefficient">
     <property name="geometry">
@@ -217,6 +235,12 @@ border: 1px solid black;</string>
       <width>62</width>
       <height>22</height>
      </rect>
+    </property>
+    <property name="maximum">
+     <double>3.000000000000000</double>
+    </property>
+    <property name="singleStep">
+     <double>0.010000000000000</double>
     </property>
    </widget>
    <widget class="QPushButton" name="pBsaveScheme">
@@ -561,6 +585,22 @@ border: 1px solid black;</string>
      </property>
      <property name="text">
       <string>灰度层级：</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="rBisWithMatrix">
+     <property name="geometry">
+      <rect>
+       <x>580</x>
+       <y>50</y>
+       <width>89</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>高数据模式</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
      </property>
     </widget>
    </widget>
