@@ -5,7 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <opencv2/opencv.hpp>
-
+#include <Qvector>
 
 // 定义命名空间
 using namespace cv;
@@ -32,12 +32,24 @@ public:
     vector<LineSegment> lines;
     vector<LineSegment> linesSegments;
     void mergeLineSegments(const vector<LineSegment>& input_lines, vector<LineSegment>& merged_lines,bool is_horizontal);
+    void mergeLineSegmentsT(const vector<LineSegment>& input_lines, vector<LineSegment>& merged_lines, bool is_horizontal);
     void saveAsPlt(const string& filename, const vector<LineSegment>& lines);
 
     template <typename T> T clamp(T value, T min_value, T max_value);
     // 函数声明
     std::vector<std::pair<int, int>> generateDistributedOrder(int gridSize);
     std::vector<std::vector<int>> generatePatternMatrix(int gridSize, int numPoints);
+
+    std::vector<std::vector<int>> generateBayerMatrix(int n);
+
+
+    double ColorCorrectionA;
+    double ColorCorrectionB;
+    double ColorCorrectionC;
+    //double determinant(double a, double b, double c, double d, double e, double f, double g, double h, double i) ;
+    bool   solveLinear3x3(const QVector<QVector<int>>& coefficients);
+
+
 
 
 
@@ -91,7 +103,7 @@ public:
 
     void halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(Mat& src, Mat& dst,double &line_distance,double imageHeight ,double LineDistance,int grayLevel, bool horizontal_lines = true);
 
-    void halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(Mat& src, Mat& dst,double &line_distance,double imageHeight ,double LineDistance,int grayLevel, bool horizontal_lines = true);
+    void halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(Mat& src, Mat& dst,double &line_distance,double imageHeight ,double LineDistance,int grayLevel, bool horizontal_lines ,int layer);
 
 
 

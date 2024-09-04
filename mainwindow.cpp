@@ -145,7 +145,7 @@ void MainWindow::analyzeImage() {
     double lineDistance_f=ui->dsbLineDistance->value();
     double imageHeight=ui->sBimageHeight->value();
     int   grayLevel=ui->sbGrayLevel->value();
-
+    bool blackLayer=ui->cBblackLayering->checkState();
     double pixelHeight=lineDistance_f*grayLevel;
     double density_factor=imageHeight/(lineDistance_f*grayLevel);
 
@@ -153,9 +153,13 @@ void MainWindow::analyzeImage() {
     floydsetin->linesSegments={};
 
     vector<int> colorList;
-    Mat img_cmyk,halftoneOut,mat_not,processMat,circleOrRect;
+    Mat img_cmyk,halftoneOut,mat_not,circleOrRect,processMat;
 
-
+    ColorCorrection={{ui->sBccOriginal->value(),ui->sBcmOriginal->value(),ui->sBcyOriginal->value(),100},
+                     {ui->sBmcOriginal->value(),ui->sBmmOriginal->value(),ui->sBmyOriginal->value(),100},
+                     {ui->sBycOriginal->value(),ui->sBymOriginal->value(),ui->sByyOriginal->value(),100},
+                     {ui->sBkcOriginal->value(),ui->sBkmOriginal->value(),ui->sBkyOriginal->value(),100}};
+    floydsetin->solveLinear3x3(ColorCorrection);
 
     if(ui->cmbDrawLnType->currentIndex()==0){DrawLntype=true;}else { DrawLntype=false;}
 
@@ -163,13 +167,67 @@ void MainWindow::analyzeImage() {
     if (ui->cmbColorLayerdType->currentText()=="CMYK"){
         // Split CMYK channels
         img_cmyk.create(ProcessImage.rows, ProcessImage.cols, CV_8UC4);
+        if(blackLayer){bitwise_not(ProcessImage,ProcessImage);}
         ImProcess->splitCMYK(ProcessImage, img_cmyk);
+        //ImProcess->rgbToCmyk(ProcessImage, img_cmyk);
         split(img_cmyk, vecCmykRgb);
-        Contrast=vecCmykRgb;}
+
+        QLabel *cmykLabels[4] = {ui->lbOriginalImageDisplay_cORr, ui->lbOriginalImageDisplay_mORg, ui->lbOriginalImageDisplay_yORb, ui->lbOriginalImageDisplay_k};
+        // 对于C, M, Y通道
+
+        // 遍历CMYK通道
+        for (int i = 0; i < 4; ++i) {
+
+
+            Mat colorCmykChannel;
+            ImProcess->processChannels(vecCmykRgb,colorCmykChannel,i);
+            // 显示图像
+            displayImage(colorCmykChannel, cmykLabels[i]);
+            // 保存图像
+            QString fileName = QString("CMYK_%1.png").arg(i);
+            QString filePath = imageSplitDirPath + "/" + fileName;
+            cv::imwrite(filePath.toStdString(), colorCmykChannel);
+        }
+        // 合并Cyan, Magenta和Yellow通道生成一个CMY图像
+        Mat Cmy;
+        vector<Mat> cmyChannels = {
+            vecCmykRgb[0] + vecCmykRgb[2],  // 合并Cyan和Yellow通道到Red
+            vecCmykRgb[0] + vecCmykRgb[1],  // 合并Cyan和Magenta通道到Green
+            vecCmykRgb[1] + vecCmykRgb[2]   // 合并Magenta和Yellow通道到Blue
+        };
+
+        // 对每个通道进行限制，确保值在0到255之间
+        for (Mat &channel : cmyChannels) {
+            cv::threshold(channel, channel, 255, 255, THRESH_TRUNC); // 限制最大值为255
+        }
+
+        // 合并通道
+        merge(cmyChannels, Cmy);
+
+        // 显示CMY图像
+//        namedWindow("Cmy", WINDOW_NORMAL);
+//        imshow("Cmy", Cmy);
+//        waitKey(0);
+        Contrast=vecCmykRgb;
+
+    }
 
     else {
         // Split RGB channels
         split(ProcessImage, vecCmykRgb);
+
+        // Display and save RGB channels
+        QLabel *rgbLabels[3] = {ui->lbOriginalImageDisplay_yORb, ui->lbOriginalImageDisplay_mORg, ui->lbOriginalImageDisplay_cORr};
+        for (int i = 0; i < 3; ++i) {
+            std::vector<Mat> channels = {Mat::zeros(ProcessImage.size(), CV_8UC1), Mat::zeros(ProcessImage.size(), CV_8UC1), Mat::zeros(ProcessImage.size(), CV_8UC1)};
+            channels[i] = vecCmykRgb[i]; // Set the respective channel
+            Mat colorRgbChannel;
+            merge(channels, colorRgbChannel);
+            displayImage(colorRgbChannel, rgbLabels[i]);
+            QString fileName = QString("BGR_%1.png").arg(i);
+            QString filePath = imageSplitDirPath + "/" + fileName;
+            cv::imwrite(filePath.toStdString(), colorRgbChannel);
+        }
         Contrast=vecCmykRgb;
     }
 
@@ -181,9 +239,10 @@ void MainWindow::analyzeImage() {
         return;}
 
 
+
     for(const auto &intColor : colorList){
 
-
+        processMat=NULL;
         processMat=vecCmykRgb[intColor];
 
 
@@ -205,20 +264,19 @@ void MainWindow::analyzeImage() {
 
             //floydsetin->halftoneUsingCircles(processMat, halftone_mat, gridSize);
             //floydsetin->halftoneWithCirclesDoubelSizeGridTest(processMat, circle, gridSize_f,density_factor);
-            //bitwise_not(processMat,processMat);
+
             //floydsetin->halftoneUsingCircles_doubelSizeGrid(processMat, processMat, 3,256);
-        }
 
-        cv::flip(processMat,processMat,0);
-
-        {
             //floydsetin->halftoneUsingline_doubelSizeGrid_savePat(processMat,floydsetin->lines, gridSize_f,true);
             //floydsetin->halftoneUsingline_doubelSizeGrid(circle, halftone_mat,floydsetin->lines, gridSize_f*0.5,true);
             //floydsetin->halftoneUsingLineWithErrorDiffusion(circle, halftone_mat,floydsetin->lines, gridSize_f,true);
         }
 
+
+        cv::flip(processMat,processMat,0);
+
         if(ui->rBisWithMatrix->isChecked()){
-            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(processMat, halftoneOut,lineDisdance,imageHeight,pixelHeight,grayLevel,DrawLntype);
+            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(processMat, halftoneOut,lineDisdance,imageHeight,pixelHeight,grayLevel,DrawLntype,intColor);
             cv::flip(processMat,processMat,0);
             cv::flip(halftoneOut,halftoneOut,0);
         }else {
@@ -228,45 +286,12 @@ void MainWindow::analyzeImage() {
             cv::flip(halftoneOut,halftoneOut,0);
         }
         // 将线段位置信息保存为 .plt 文件
-        floydsetin->mergeLineSegments(floydsetin->lines,floydsetin->linesSegments,DrawLntype);
+        floydsetin->mergeLineSegmentsT(floydsetin->lines,floydsetin->linesSegments,DrawLntype);
         QString pltPath=imageSplitDirPath+QString("/LayerColor %1 .plt").arg(intColor);
         floydsetin->saveAsPlt(pltPath.toStdString(), floydsetin->linesSegments);
 
 
-        if (ui->cmbColorLayerdType->currentText()=="CMYK"){
 
-            // Display and save CMYK channels
-            QLabel *cmykLabels[4] = {ui->lbOriginalImageDisplay_cORr, ui->lbOriginalImageDisplay_mORg, ui->lbOriginalImageDisplay_yORb, ui->lbOriginalImageDisplay_k};
-            for (int i = 0; i < 4; ++i) {
-                std::vector<Mat> channels = {Mat::zeros(ProcessImage.size(), CV_8UC1), Mat::zeros(ProcessImage.size(), CV_8UC1), Mat::zeros(ProcessImage.size(), CV_8UC1)};
-                if (i < 3) {
-                    channels[i] = vecCmykRgb[i]; // Set the respective channel
-                } else {
-                    channels = {vecCmykRgb[i], vecCmykRgb[i], vecCmykRgb[i]}; // Set all channels to K for black channel
-                }
-                Mat colorCmykChannel;
-                merge(channels, colorCmykChannel);
-                displayImage(vecCmykRgb[i], cmykLabels[i]);
-                QString fileName = QString("CMYK_%1.png").arg(i);
-                QString filePath = imageSplitDirPath + "/" + fileName;
-                cv::imwrite(filePath.toStdString(), vecCmykRgb[i]);
-            }
-
-        }else {
-
-            // Display and save RGB channels
-            QLabel *rgbLabels[3] = {ui->lbOriginalImageDisplay_cORr, ui->lbOriginalImageDisplay_mORg, ui->lbOriginalImageDisplay_yORb};
-            for (int i = 0; i < 3; ++i) {
-                //std::vector<Mat> channels = {Mat::zeros(src.size(), CV_8UC1), Mat::zeros(src.size(), CV_8UC1), Mat::zeros(src.size(), CV_8UC1)};
-                //channels[i] = vecRgb[i]; // Set the respective channel
-                //Mat colorRgbChannel;
-                //merge(channels, colorRgbChannel);
-                displayImage(vecCmykRgb[i], rgbLabels[i]);
-                QString fileName = QString("RGB_%1.png").arg(i);
-                QString filePath = imageSplitDirPath + "/" + fileName;
-                cv::imwrite(filePath.toStdString(), vecCmykRgb[i]);
-            }
-        }
 
 
         //        QString halftone_fileName = QString("halftoneOut.png").arg(intColor);
@@ -277,7 +302,7 @@ void MainWindow::analyzeImage() {
         QString circle_fileName = QString("circleOrRect.png").arg(intColor);
         QString circle_filePath = imageSplitDirPath + "/" + circle_fileName;
         cv::imwrite(circle_filePath.toStdString(),processMat);
-
+        qDebug()<<"test";
     }
     QMessageBox box(QMessageBox::Question,QStringLiteral("提示"),QStringLiteral("矢量图生成完成"));
     box.setStandardButtons (QMessageBox::Ok);
@@ -329,37 +354,8 @@ void MainWindow::colorSaturationChanged(int index) {
 void MainWindow::blackLayerChanged(bool checked) {
     // 获取当前图像
 
-    if (OriginalImage.empty()) {
-        return;
-    }
+    blackLayer=checked;
 
-    if(ProcessImage.channels()==3){
-        // 转换到灰度图像
-        Mat gray;
-        cvtColor(ProcessImage, gray, COLOR_BGR2GRAY);
-
-        // 调整黑色层次
-        if (checked) {
-            for (int i = 0; i < gray.rows; ++i) {
-                for (int j = 0; j < gray.cols; ++j) {
-                    gray.at<uchar>(i, j) = saturate_cast<uchar>(gray.at<uchar>(i, j) * 1.5);
-                }
-            }
-        }
-
-        ProcessImage=gray;
-        // 显示调整后的图像
-        displayImage(gray, ui->lbOriginalImageDisplay);
-    }
-    else {
-
-
-
-        ProcessImage=OriginalImage;
-        // 显示调整后的图像
-        displayImage(ProcessImage, ui->lbOriginalImageDisplay);
-
-    }
 
 }
 
@@ -369,7 +365,7 @@ void MainWindow::loadScheme(const QString &filePath) {
 
 
     scheme->loadScheme(filePath, imagePath,grayLevel, halftoneGridType, DrawLnType, colorlayereType,
-                       pixelGridHeight,imageHeight, blackLayer,colorSaturationList,colorLayerList);
+                       pixelGridHeight,imageHeight, blackLayer,colorSaturationList,colorLayerList,ColorCorrection);
 
     ui->hSColorSaturation->setValue(colorSaturationList[0]);
     ui->lbColorSaturationDisplay->setText(QString::number(colorSaturationList[0]));
@@ -391,6 +387,23 @@ void MainWindow::loadScheme(const QString &filePath) {
     ui->cBSelectMorG->setCheckState(colorLayerList[1] ? Qt::Checked : Qt::Unchecked);
     ui->cBSelectYorB->setCheckState(colorLayerList[2] ? Qt::Checked : Qt::Unchecked);
     ui->cBSelectK->setCheckState(colorLayerList[3] ? Qt::Checked : Qt::Unchecked);
+
+
+    QVector<QVector<QSpinBox*>> ColorCorrectionUi={{ui->sBccOriginal,ui->sBcmOriginal,ui->sBcyOriginal,ui->sBckOriginal},
+                     {ui->sBmcOriginal,ui->sBmmOriginal,ui->sBmyOriginal,ui->sBmkOriginal},
+                     {ui->sBycOriginal,ui->sBymOriginal,ui->sByyOriginal,ui->sBykOriginal},
+                     {ui->sBkcOriginal,ui->sBkmOriginal,ui->sBkyOriginal,ui->sBkkOriginal}};
+
+
+
+
+
+    // 假设有一个与ColorCorrection相同维度的QVector<QVector<int>> matrixToShow，其中保存了需要显示的值
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            ColorCorrectionUi[i][j]->setValue(ColorCorrection[i][j]);
+        }
+    }
 
 
     ui->lbImageName->setText(imagePath);
@@ -440,9 +453,14 @@ void MainWindow::saveAsScheme() {
             ui->cBSelectK->isChecked()
         };
 
+        ColorCorrection={{ui->sBccOriginal->value(),ui->sBcmOriginal->value(),ui->sBcyOriginal->value(),ui->sBckOriginal->value()},
+                         {ui->sBmcOriginal->value(),ui->sBmmOriginal->value(),ui->sBmyOriginal->value(),ui->sBmkOriginal->value()},
+                         {ui->sBycOriginal->value(),ui->sBymOriginal->value(),ui->sByyOriginal->value(),ui->sBykOriginal->value()},
+                         {ui->sBkcOriginal->value(),ui->sBkmOriginal->value(),ui->sBkyOriginal->value(),ui->sBkkOriginal->value()}};
+
         scheme->saveCurrentScheme(fileName, imagePath, ui->sbGrayLevel->value(), halftoneGridType , ui->cmbDrawLnType->currentIndex()
                                   , ui->cmbColorLayerdType->currentText()  ,ui->dsbLineDistance->value(),ui->sBimageHeight->value()
-                                  ,ui->cBblackLayering->isChecked(), colorSaturationList,colorLayerList);
+                                  ,ui->cBblackLayering->isChecked(), colorSaturationList,colorLayerList,ColorCorrection);
         scheme->setSchemePath(fileName);
     }
     save_setting("IsStartWithScheme",ui->cbStartInScheme->isChecked());
@@ -471,10 +489,14 @@ void MainWindow::saveScheme() {
             ui->cBSelectYorB->isChecked(),
             ui->cBSelectK->isChecked()
         };
+        ColorCorrection={{ui->sBccOriginal->value(),ui->sBcmOriginal->value(),ui->sBcyOriginal->value(),ui->sBckOriginal->value()},
+                         {ui->sBmcOriginal->value(),ui->sBmmOriginal->value(),ui->sBmyOriginal->value(),ui->sBmkOriginal->value()},
+                         {ui->sBycOriginal->value(),ui->sBymOriginal->value(),ui->sByyOriginal->value(),ui->sBykOriginal->value()},
+                         {ui->sBkcOriginal->value(),ui->sBkmOriginal->value(),ui->sBkyOriginal->value(),ui->sBkkOriginal->value()}};
 
         scheme->saveCurrentScheme(scheme->getSchemePath(), imagePath,  ui->sbGrayLevel->value(),ui->cbGridType->currentIndex() , ui->cmbDrawLnType->currentIndex()
                                   , ui->cmbColorLayerdType->currentText()  ,ui->dsbLineDistance->value(),ui->sBimageHeight->value()
-                                  ,ui->cBblackLayering->isChecked(), colorSaturationList,colorLayerList);
+                                  ,ui->cBblackLayering->isChecked(), colorSaturationList,colorLayerList,ColorCorrection);
     } else {
         saveAsScheme();
     }
@@ -506,7 +528,7 @@ void MainWindow::newScheme() {
         //loadImage();  // 清空图像显示
 
         // 创建并保存空白方案文件
-        scheme->saveCurrentScheme(fileName, imagePath,1, 1, 1,"CMYK", 1.0,1.0,false,{1.0,1.0,1.0,1.0,1.0},{true,true,true,true});
+        scheme->saveCurrentScheme(fileName, imagePath,1, 1, 1,"CMYK", 1.0,1.0,false,{1.0,1.0,1.0,1.0,1.0},{true,true,true,true},{{100,0,0,0},{0,100,0,0},{0,0,100,0},{0,0,0,100}});
         ui->leSchemeDameDisplay->setText(scheme->schemePath);
     }
 }
@@ -693,15 +715,22 @@ void MainWindow::halftoneGridTypeChanged(int index){
 void  MainWindow::selcetLayre(vector<int> &color){
 
 
-    qDebug()<<"cBSelectCorR"<<ui->cBSelectCorR->isChecked();
-    if (ui->cBSelectCorR->isChecked()){          color.push_back(0);    }
+    if (ui->cmbColorLayerdType->currentText()=="CMYK"){
+        if (ui->cBSelectCorR->isChecked()){          color.push_back(0);    }
 
-    if (ui->cBSelectMorG->isChecked()) {    color.push_back(1);    }
+        if (ui->cBSelectMorG->isChecked()) {    color.push_back(1);    }
 
-    if (ui->cBSelectYorB->isChecked()) {    color.push_back(2);    }
+        if (ui->cBSelectYorB->isChecked()) {    color.push_back(2);    }
 
-    if (ui->cBSelectK->isChecked()) {    color.push_back(3);    }
+        if (ui->cBSelectK->isChecked()) {    color.push_back(3);    }
+    }else {
 
+        if (ui->cBSelectCorR->isChecked()){          color.push_back(0);    }
+
+        if (ui->cBSelectMorG->isChecked()) {    color.push_back(1);    }
+
+        if (ui->cBSelectYorB->isChecked()) {    color.push_back(2);    }
+    }
 
 }
 //    namedWindow("CMYK_C");

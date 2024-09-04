@@ -55,6 +55,7 @@ private:
 
     cv::Mat OriginalImage;
     cv::Mat ProcessImage;
+    //cv::Mat processMat;
     std::vector<Mat> vecRgb, vecCmyk,vecCmykRgb,Contrast;
 
     floydsetinTool* floydsetin;
@@ -70,6 +71,7 @@ private:
     double imageHeight;
     double pixelGridHeight;
     //double colorSaturation;
+    QVector<QVector<int>> ColorCorrection;
     QVector <double> colorSaturationList;
     QVector <bool>   colorLayerList;
     static cv::Mat img, img_resized;
