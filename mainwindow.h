@@ -68,6 +68,8 @@ private:
     int halftoneGridType;
     int gridImageSort;
     int grayLevel;
+    int blackRange;
+    double dataDenstyScaling;
     double imageHeight;
     double pixelGridHeight;
     //double colorSaturation;

@@ -140,17 +140,15 @@ void MainWindow::analyzeImage() {
         box->open ();
         return;}
 
-    double lineDisdance;
+
     bool  DrawLntype;
     double lineDistance_f=ui->dsbLineDistance->value();
     double imageHeight=ui->sBimageHeight->value();
     int   grayLevel=ui->sbGrayLevel->value();
     bool blackLayer=ui->cBblackLayering->checkState();
-    double pixelHeight=lineDistance_f*grayLevel;
     double density_factor=imageHeight/(lineDistance_f*grayLevel);
 
-    floydsetin->lines={};
-    floydsetin->linesSegments={};
+
 
     vector<int> colorList;
     Mat img_cmyk,halftoneOut,mat_not,circleOrRect,processMat;
@@ -158,17 +156,20 @@ void MainWindow::analyzeImage() {
     ColorCorrection={{ui->sBccOriginal->value(),ui->sBcmOriginal->value(),ui->sBcyOriginal->value(),100},
                      {ui->sBmcOriginal->value(),ui->sBmmOriginal->value(),ui->sBmyOriginal->value(),100},
                      {ui->sBycOriginal->value(),ui->sBymOriginal->value(),ui->sByyOriginal->value(),100},
-                     {ui->sBkcOriginal->value(),ui->sBkmOriginal->value(),ui->sBkyOriginal->value(),100}};
+                     //{ui->sBkcOriginal->value(),ui->sBkmOriginal->value(),ui->sBkyOriginal->value(),100}
+                    };
     floydsetin->solveLinear3x3(ColorCorrection);
 
     if(ui->cmbDrawLnType->currentIndex()==0){DrawLntype=true;}else { DrawLntype=false;}
 
 
     if (ui->cmbColorLayerdType->currentText()=="CMYK"){
+        Mat ProcessImageBN;
+        ProcessImageBN=ProcessImage;
         // Split CMYK channels
         img_cmyk.create(ProcessImage.rows, ProcessImage.cols, CV_8UC4);
-        if(blackLayer){bitwise_not(ProcessImage,ProcessImage);}
-        ImProcess->splitCMYK(ProcessImage, img_cmyk);
+        if(blackLayer){ProcessImageBN = Mat();bitwise_not(ProcessImage,ProcessImageBN);}
+        ImProcess->splitCMYK(ProcessImageBN, img_cmyk);
         //ImProcess->rgbToCmyk(ProcessImage, img_cmyk);
         split(img_cmyk, vecCmykRgb);
 
@@ -249,60 +250,29 @@ void MainWindow::analyzeImage() {
         ImProcess->resizeImageWithLanczos4(processMat,processMat,density_factor);
 
 
-        qDebug()<<"pixelHeight   "<<(pixelHeight);
-        qDebug()<<"density_factor   "<<density_factor;
-        qDebug()<<"processMat   "<<processMat.cols;
-
-        {
-            //circleOrRect=processMat;
-            //if (halftoneGridType==0){floydsetin->halftoneUsingCircles_doubelSizeGrid(processMat, circleOrRect, gridSize_f,256);}
-            //else {floydsetin->halftoneUsingRect_doubelSizeGrid(processMat, circleOrRect, gridSize_f,256);}
-
-            //floydsetin_16(src);
-            //floydsetin->halftone(ProcessImage,halftone_mat,gridSize);
-            //floydsetin->floydSteinbergHalftoneUsingPointNum(processMat, halftone_mat, gridSize);
-
-            //floydsetin->halftoneUsingCircles(processMat, halftone_mat, gridSize);
-            //floydsetin->halftoneWithCirclesDoubelSizeGridTest(processMat, circle, gridSize_f,density_factor);
-
-            //floydsetin->halftoneUsingCircles_doubelSizeGrid(processMat, processMat, 3,256);
-
-            //floydsetin->halftoneUsingline_doubelSizeGrid_savePat(processMat,floydsetin->lines, gridSize_f,true);
-            //floydsetin->halftoneUsingline_doubelSizeGrid(circle, halftone_mat,floydsetin->lines, gridSize_f*0.5,true);
-            //floydsetin->halftoneUsingLineWithErrorDiffusion(circle, halftone_mat,floydsetin->lines, gridSize_f,true);
-        }
-
 
         cv::flip(processMat,processMat,0);
 
+        floydsetin->pltPathPlt=imageSplitDirPath+QString("/LayerColor %1 .plt").arg(intColor);
+        floydsetin->pltPathDxf=imageSplitDirPath+QString("/LayerColor %1 Matrix.dxf").arg(intColor);
+
         if(ui->rBisWithMatrix->isChecked()){
-            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(processMat, halftoneOut,lineDisdance,imageHeight,pixelHeight,grayLevel,DrawLntype,intColor);
+            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(processMat, halftoneOut,lineDistance_f,imageHeight,grayLevel,DrawLntype,intColor,dataDenstyScaling,blackRange);
             cv::flip(processMat,processMat,0);
             cv::flip(halftoneOut,halftoneOut,0);
         }else {
 
-            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(processMat, halftoneOut,lineDisdance,imageHeight,pixelHeight,grayLevel,DrawLntype);
+            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(processMat, halftoneOut,lineDistance_f,imageHeight,grayLevel,DrawLntype ,intColor,dataDenstyScaling,blackRange);
             cv::flip(processMat,processMat,0);
             cv::flip(halftoneOut,halftoneOut,0);
         }
         // 将线段位置信息保存为 .plt 文件
-        floydsetin->mergeLineSegmentsT(floydsetin->lines,floydsetin->linesSegments,DrawLntype);
-        QString pltPath=imageSplitDirPath+QString("/LayerColor %1 .plt").arg(intColor);
-        floydsetin->saveAsPlt(pltPath.toStdString(), floydsetin->linesSegments);
-
-
-
-
-
-        //        QString halftone_fileName = QString("halftoneOut.png").arg(intColor);
-        //        QString halftone_filePath = imageSplitDirPath + "/" + halftone_fileName;
-        //        cv::imwrite(halftone_filePath.toStdString(),halftoneOut);
 
 
         QString circle_fileName = QString("circleOrRect.png").arg(intColor);
         QString circle_filePath = imageSplitDirPath + "/" + circle_fileName;
         cv::imwrite(circle_filePath.toStdString(),processMat);
-        qDebug()<<"test";
+
     }
     QMessageBox box(QMessageBox::Question,QStringLiteral("提示"),QStringLiteral("矢量图生成完成"));
     box.setStandardButtons (QMessageBox::Ok);
@@ -365,7 +335,7 @@ void MainWindow::loadScheme(const QString &filePath) {
 
 
     scheme->loadScheme(filePath, imagePath,grayLevel, halftoneGridType, DrawLnType, colorlayereType,
-                       pixelGridHeight,imageHeight, blackLayer,colorSaturationList,colorLayerList,ColorCorrection);
+                       pixelGridHeight,imageHeight, blackLayer,dataDenstyScaling,blackRange,colorSaturationList,colorLayerList,ColorCorrection);
 
     ui->hSColorSaturation->setValue(colorSaturationList[0]);
     ui->lbColorSaturationDisplay->setText(QString::number(colorSaturationList[0]));
@@ -381,7 +351,8 @@ void MainWindow::loadScheme(const QString &filePath) {
     ui->sBimageHeight->setValue(imageHeight);
     ui->cbGridType->setCurrentIndex(halftoneGridType);
     ui->cmbDrawLnType->setCurrentIndex(DrawLnType);
-
+    ui->dsbdataDenstyScaling->setValue(dataDenstyScaling);
+    ui->sbBlackRange->setValue(blackRange);
     // 设置各个 QCheckBox 的状态
     ui->cBSelectCorR->setCheckState(colorLayerList[0] ? Qt::Checked : Qt::Unchecked);
     ui->cBSelectMorG->setCheckState(colorLayerList[1] ? Qt::Checked : Qt::Unchecked);
@@ -389,18 +360,19 @@ void MainWindow::loadScheme(const QString &filePath) {
     ui->cBSelectK->setCheckState(colorLayerList[3] ? Qt::Checked : Qt::Unchecked);
 
 
-    QVector<QVector<QSpinBox*>> ColorCorrectionUi={{ui->sBccOriginal,ui->sBcmOriginal,ui->sBcyOriginal,ui->sBckOriginal},
-                     {ui->sBmcOriginal,ui->sBmmOriginal,ui->sBmyOriginal,ui->sBmkOriginal},
-                     {ui->sBycOriginal,ui->sBymOriginal,ui->sByyOriginal,ui->sBykOriginal},
-                     {ui->sBkcOriginal,ui->sBkmOriginal,ui->sBkyOriginal,ui->sBkkOriginal}};
+    QVector<QVector<QSpinBox*>> ColorCorrectionUi={{ui->sBccOriginal,ui->sBcmOriginal,ui->sBcyOriginal},
+                     {ui->sBmcOriginal,ui->sBmmOriginal,ui->sBmyOriginal},
+                     {ui->sBycOriginal,ui->sBymOriginal,ui->sByyOriginal},
+                     //{ui->sBkcOriginal,ui->sBkmOriginal,ui->sBkyOriginal,ui->sBkkOriginal}
+                                                                                            };
 
 
 
 
 
     // 假设有一个与ColorCorrection相同维度的QVector<QVector<int>> matrixToShow，其中保存了需要显示的值
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
             ColorCorrectionUi[i][j]->setValue(ColorCorrection[i][j]);
         }
     }
@@ -453,14 +425,14 @@ void MainWindow::saveAsScheme() {
             ui->cBSelectK->isChecked()
         };
 
-        ColorCorrection={{ui->sBccOriginal->value(),ui->sBcmOriginal->value(),ui->sBcyOriginal->value(),ui->sBckOriginal->value()},
-                         {ui->sBmcOriginal->value(),ui->sBmmOriginal->value(),ui->sBmyOriginal->value(),ui->sBmkOriginal->value()},
-                         {ui->sBycOriginal->value(),ui->sBymOriginal->value(),ui->sByyOriginal->value(),ui->sBykOriginal->value()},
-                         {ui->sBkcOriginal->value(),ui->sBkmOriginal->value(),ui->sBkyOriginal->value(),ui->sBkkOriginal->value()}};
+        ColorCorrection={{ui->sBccOriginal->value(),ui->sBcmOriginal->value(),ui->sBcyOriginal->value()},
+                         {ui->sBmcOriginal->value(),ui->sBmmOriginal->value(),ui->sBmyOriginal->value()},
+                         {ui->sBycOriginal->value(),ui->sBymOriginal->value(),ui->sByyOriginal->value()},
+                         };
 
         scheme->saveCurrentScheme(fileName, imagePath, ui->sbGrayLevel->value(), halftoneGridType , ui->cmbDrawLnType->currentIndex()
                                   , ui->cmbColorLayerdType->currentText()  ,ui->dsbLineDistance->value(),ui->sBimageHeight->value()
-                                  ,ui->cBblackLayering->isChecked(), colorSaturationList,colorLayerList,ColorCorrection);
+                                  ,ui->cBblackLayering->isChecked(), ui->dsbLineDistance->value(),ui->sbBlackRange->value(),colorSaturationList,colorLayerList,ColorCorrection);
         scheme->setSchemePath(fileName);
     }
     save_setting("IsStartWithScheme",ui->cbStartInScheme->isChecked());
@@ -489,14 +461,14 @@ void MainWindow::saveScheme() {
             ui->cBSelectYorB->isChecked(),
             ui->cBSelectK->isChecked()
         };
-        ColorCorrection={{ui->sBccOriginal->value(),ui->sBcmOriginal->value(),ui->sBcyOriginal->value(),ui->sBckOriginal->value()},
-                         {ui->sBmcOriginal->value(),ui->sBmmOriginal->value(),ui->sBmyOriginal->value(),ui->sBmkOriginal->value()},
-                         {ui->sBycOriginal->value(),ui->sBymOriginal->value(),ui->sByyOriginal->value(),ui->sBykOriginal->value()},
-                         {ui->sBkcOriginal->value(),ui->sBkmOriginal->value(),ui->sBkyOriginal->value(),ui->sBkkOriginal->value()}};
+        ColorCorrection={{ui->sBccOriginal->value(),ui->sBcmOriginal->value(),ui->sBcyOriginal->value()},
+                         {ui->sBmcOriginal->value(),ui->sBmmOriginal->value(),ui->sBmyOriginal->value()},
+                         {ui->sBycOriginal->value(),ui->sBymOriginal->value(),ui->sByyOriginal->value()},
+                         };
 
         scheme->saveCurrentScheme(scheme->getSchemePath(), imagePath,  ui->sbGrayLevel->value(),ui->cbGridType->currentIndex() , ui->cmbDrawLnType->currentIndex()
                                   , ui->cmbColorLayerdType->currentText()  ,ui->dsbLineDistance->value(),ui->sBimageHeight->value()
-                                  ,ui->cBblackLayering->isChecked(), colorSaturationList,colorLayerList,ColorCorrection);
+                                  ,ui->cBblackLayering->isChecked(), ui->dsbdataDenstyScaling->value(),ui->sbBlackRange->value(),colorSaturationList,colorLayerList,ColorCorrection);
     } else {
         saveAsScheme();
     }
@@ -523,12 +495,19 @@ void MainWindow::newScheme() {
         // 设置默认值
         ui->hSColorSaturation->setValue(1.0);
         ui->cBblackLayering->setChecked(false);
+        ui->sbGrayLevel->setValue(4);
         ui->dsbLineDistance->setValue(1.0);
+        ui->dsbdataDenstyScaling->setValue(0.4);
+        ui->sbBlackRange->setValue(4);
         imagePath.clear();
         //loadImage();  // 清空图像显示
-
+        int grayLevel=4;
+        double dsbLineDistance=0.015;
+        double imageHeight=37;
+        double dataDenstyScaling=0.35;
+        int BlackRange=grayLevel;
         // 创建并保存空白方案文件
-        scheme->saveCurrentScheme(fileName, imagePath,1, 1, 1,"CMYK", 1.0,1.0,false,{1.0,1.0,1.0,1.0,1.0},{true,true,true,true},{{100,0,0,0},{0,100,0,0},{0,0,100,0},{0,0,0,100}});
+        scheme->saveCurrentScheme(fileName, imagePath,grayLevel, 1, 1,"CMYK", dsbLineDistance,imageHeight,false,dataDenstyScaling,BlackRange,{1.0,1.0,1.0,1.0,1.0},{true,true,true,true},{{100,0,0},{0,100,0},{0,0,100}});
         ui->leSchemeDameDisplay->setText(scheme->schemePath);
     }
 }

@@ -14,7 +14,7 @@ QString Scheme::getSchemePath() const {
 }
 
 void Scheme::saveCurrentScheme(const QString &filePath, const QString &imagePath,int grayLevel,int halftoneGridType,int DrawLnType,QString colorlayereType,
-                               double dsbLineDistance, double imageHeight,bool blackLayer,QVector <double> colorSaturationLIst ,QVector <bool> colorlayerLIst,QVector<QVector<int>> ColorCorrection) {
+                               double dsbLineDistance, double imageHeight,bool blackLayer, double  dataDenstyScaling,int BlackRange,QVector <double> colorSaturationLIst ,QVector <bool> colorlayerLIst,QVector<QVector<int>> ColorCorrection) {
     QJsonObject scheme;
     scheme["imagePath"] = imagePath;
     scheme["blackLayer"] = blackLayer;
@@ -24,8 +24,8 @@ void Scheme::saveCurrentScheme(const QString &filePath, const QString &imagePath
     scheme["colorlayereType"] = colorlayereType;
     scheme["imageHeight"] = imageHeight;
     scheme["grayLevel"] = grayLevel;
-
-
+    scheme["dataDenstyScaling"] = dataDenstyScaling;
+    scheme["BlackRange"] = BlackRange;
     for(int i=0;i<5;i++){
         scheme[QString("colorSaturationLIst%1").arg(i)] = colorSaturationLIst[i];
     }
@@ -36,8 +36,8 @@ void Scheme::saveCurrentScheme(const QString &filePath, const QString &imagePath
     }
 
 
-    for(int i=0;i<4;i++){
-        for(int j=0;j<4;j++){
+    for(int i=0;i<3;i++){
+        for(int j=0;j<3;j++){
             scheme[QString("ColorCorrection%1%2").arg(i).arg(j)] = ColorCorrection[i][j];
         }
     }
@@ -50,7 +50,7 @@ void Scheme::saveCurrentScheme(const QString &filePath, const QString &imagePath
 }
 
 void Scheme::loadScheme(const QString &filePath, QString &imagePath,int &grayLevel ,int &halftoneGridType,int &DrawLnType,QString &colorlayereType,
-                        double &dsbLineDistance, double &imageHeight,bool &blackLayer,QVector <double> &colorSaturationLIst ,QVector <bool> &colorlayerLIst,QVector<QVector<int>> &ColorCorrection) {
+                        double &dsbLineDistance, double &imageHeight,bool &blackLayer, double &dataDenstyScaling,int &BlackRange,QVector <double> &colorSaturationLIst ,QVector <bool> &colorlayerLIst,QVector<QVector<int>> &ColorCorrection) {
     QFile file(filePath);
     if (file.open(QIODevice::ReadOnly)) {
         QJsonObject scheme = QJsonDocument::fromJson(file.readAll()).object();
@@ -66,7 +66,9 @@ void Scheme::loadScheme(const QString &filePath, QString &imagePath,int &grayLev
         imageHeight = scheme["imageHeight"].toDouble();
         dsbLineDistance = scheme["dsbLineDistance"].toDouble();
         blackLayer = scheme["blackLayer"].toBool();
-        ColorCorrection={{100,0,0,0},{0,100,0,0},{0,0,100,0},{0,0,0,0}};
+        dataDenstyScaling = scheme["dataDenstyScaling"].toDouble();
+        BlackRange = scheme["BlackRange"].toInt();
+        ColorCorrection={{100,0,0},{0,100,0},{0,0,100}};
         for (int i=0;i<5;i++) {
             colorSaturationLIst.append(scheme[QString("colorSaturationLIst%1").arg(i)].toDouble());
 
@@ -77,8 +79,8 @@ void Scheme::loadScheme(const QString &filePath, QString &imagePath,int &grayLev
 
         }
 
-        for(int i=0;i<4;i++){
-            for(int j=0;j<4;j++){
+        for(int i=0;i<3;i++){
+            for(int j=0;j<3;j++){
                 ColorCorrection[i][j] = scheme[QString("ColorCorrection%1%2").arg(i).arg(j)].toInt();
             }
         }
