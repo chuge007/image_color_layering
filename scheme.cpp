@@ -14,11 +14,14 @@ QString Scheme::getSchemePath() const {
 }
 
 void Scheme::saveCurrentScheme(const QString &filePath, const QString &imagePath,int grayLevel,int halftoneGridType,int DrawLnType,QString colorlayereType,
-                               double dsbLineDistance, double imageHeight,bool blackLayer, double  dataDenstyScaling,int BlackRange,QVector <double> colorSaturationLIst ,QVector <bool> colorlayerLIst,QVector<QVector<int>> ColorCorrection) {
+                               double dsbLineDistanceC, double dsbLineDistanceM, double dsbLineDistanceY, double dsbLineDistanceK,  double imageHeight,bool blackLayer, double  dataDenstyScaling,int BlackRange,QVector <double> colorSaturationLIst ,QVector <bool> colorlayerLIst,QVector<QVector<int>> ColorCorrection) {
     QJsonObject scheme;
     scheme["imagePath"] = imagePath;
     scheme["blackLayer"] = blackLayer;
-    scheme["dsbLineDistance"] = dsbLineDistance;
+    scheme["dsbLineDistanceC"] = dsbLineDistanceC;
+    scheme["dsbLineDistanceM"]=dsbLineDistanceM;
+    scheme["dsbLineDistanceY"]=dsbLineDistanceY;
+    scheme["dsbLineDistanceK"]=dsbLineDistanceK;
     scheme["halftoneGridType"] = halftoneGridType;
     scheme["gridImageSort"] = DrawLnType;
     scheme["colorlayereType"] = colorlayereType;
@@ -50,7 +53,7 @@ void Scheme::saveCurrentScheme(const QString &filePath, const QString &imagePath
 }
 
 void Scheme::loadScheme(const QString &filePath, QString &imagePath,int &grayLevel ,int &halftoneGridType,int &DrawLnType,QString &colorlayereType,
-                        double &dsbLineDistance, double &imageHeight,bool &blackLayer, double &dataDenstyScaling,int &BlackRange,QVector <double> &colorSaturationLIst ,QVector <bool> &colorlayerLIst,QVector<QVector<int>> &ColorCorrection) {
+                        double &dsbLineDistanceC, double &dsbLineDistanceM, double &dsbLineDistanceY, double &dsbLineDistanceK,  double &imageHeight,bool &blackLayer, double &dataDenstyScaling,int &BlackRange,QVector <double> &colorSaturationLIst ,QVector <bool> &colorlayerLIst,QVector<QVector<int>> &ColorCorrection) {
     QFile file(filePath);
     if (file.open(QIODevice::ReadOnly)) {
         QJsonObject scheme = QJsonDocument::fromJson(file.readAll()).object();
@@ -64,7 +67,10 @@ void Scheme::loadScheme(const QString &filePath, QString &imagePath,int &grayLev
 
 
         imageHeight = scheme["imageHeight"].toDouble();
-        dsbLineDistance = scheme["dsbLineDistance"].toDouble();
+        dsbLineDistanceC = scheme["dsbLineDistanceC"].toDouble();
+        dsbLineDistanceM = scheme["dsbLineDistanceM"].toDouble();
+        dsbLineDistanceY = scheme["dsbLineDistanceY"].toDouble();
+        dsbLineDistanceK = scheme["dsbLineDistanceK"].toDouble();
         blackLayer = scheme["blackLayer"].toBool();
         dataDenstyScaling = scheme["dataDenstyScaling"].toDouble();
         BlackRange = scheme["BlackRange"].toInt();

@@ -32,10 +32,6 @@ void  ImProcessTool::splitCMYK(Mat &image, Mat &cmyk) {
             uchar m = 255 - g;
             uchar y = 255 - b;
             uchar k = min(min(c,m),y);
-            //            dataCMYK[4*j] = c - k;
-            //            dataCMYK[4*j+1] = m  - k;
-            //            dataCMYK[4*j+2] = y  - k;
-            //            dataCMYK[4*j+3] = k;
 
             dataCMYK[4*j] = c ;
             dataCMYK[4*j+1] = m  ;
@@ -54,95 +50,6 @@ void  ImProcessTool::splitCMYK(Mat &image, Mat &cmyk) {
 
 }
 
-
-// Convert BGR to CMYK
-void ImProcessTool::splitCMYKT(const Mat& src, Mat& dst) {
-    // Check if the image is valid and has three channels
-    if (src.empty() || src.channels() != 3) {
-        std::cout << "Invalid input image" << std::endl;
-        return;
-    }
-
-    // Allocate memory for the CMYK image
-    dst.create(src.size(), CV_8UC4);
-
-    for (int y = 0; y < src.rows; y++) {
-        for (int x = 0; x < src.cols; x++) {
-            Vec3b bgr = src.at<Vec3b>(y, x);
-            Vec4b cmyk;
-
-            // Convert from BGR to RGB
-            Vec3b rgb;
-            rgb[2] = bgr[0]; // B
-            rgb[1] = bgr[1]; // G
-            rgb[0] = bgr[2]; // R
-
-            // Convert from RGB to CMY
-            cmyk[0] = 255 - rgb[2]; // Cyan
-            cmyk[1] = 255 - rgb[1]; // Magenta
-            cmyk[2] = 255 - rgb[0]; // Yellow
-
-            // Calculate Black (K)
-            uchar k = min(rgb[0], min(rgb[1], rgb[2]));
-            cmyk[0] -= k; // Subtract black from cyan
-            cmyk[1] -= k; // Subtract black from magenta
-            cmyk[2] -= k; // Subtract black from yellow
-            cmyk[3] = k;  // Black
-
-            // Clamp values between 0 and 255
-            cmyk[0] = min(max(cmyk[0], (uchar)0), (uchar)255);
-            cmyk[1] = min(max(cmyk[1], (uchar)0), (uchar)255);
-            cmyk[2] = min(max(cmyk[2], (uchar)0), (uchar)255);
-            cmyk[3] = min(max(cmyk[3], (uchar)0), (uchar)255);
-
-            // Store the CMYK value
-            dst.at<Vec4b>(y, x) = cmyk;
-        }
-    }
-}
-
-void ImProcessTool::rgbToCmyk(const Mat &rgbImage, Mat &cmykImage) {
-    if (!rgbImage.data) {
-        std::cerr << "Image data missing" << std::endl;
-        return;
-    }
-
-    int rows = rgbImage.rows;
-    int cols = rgbImage.cols;
-
-    // Ensure cmykImage is of type CV_8UC4 to handle integer values
-    if (cmykImage.type() != CV_8UC4) {
-        cmykImage.create(rgbImage.size(), CV_8UC4);
-    }
-
-    for (int i = 0; i < rows; ++i) {
-        const uchar* src = rgbImage.ptr<uchar>(i);
-        uchar* dst = cmykImage.ptr<uchar>(i);
-
-        for (int j = 0; j < cols; ++j) {
-            float b = src[3 * j] / 255.0f;
-            float g = src[3 * j + 1] / 255.0f;
-            float r = src[3 * j + 2] / 255.0f;
-
-            float k = 1.0f - std::max({r, g, b});
-            float c = (1.0f - r - k) / (1.0f - k);
-            float m = (1.0f - g - k) / (1.0f - k);
-            float y = (1.0f - b - k) / (1.0f - k);
-
-            if (k == 1.0f) {
-                c = 0.0f;
-                m = 0.0f;
-                y = 0.0f;
-            }
-
-            // Convert CMYK values to 0-100 range
-            dst[4 * j]     = static_cast<uchar>(c * 100.0f);  // C value as integer
-            dst[4 * j + 1] = static_cast<uchar>(m * 100.0f);  // M value as integer
-            dst[4 * j + 2] = static_cast<uchar>(y * 100.0f);  // Y value as integer
-            dst[4 * j + 3] = static_cast<uchar>(k * 100.0f);  // K value as integer
-        }
-    }
-}
 
 
 void ImProcessTool::colorSaturation(Mat &img,Mat &out,int index){
@@ -235,10 +142,8 @@ void ImProcessTool::processChannels(const vector<Mat>& vecCmykRgb, Mat& colorCmy
         vector<Mat> channels = { Mat::zeros(cmykChannel.size(), CV_8UC1),green ,red};
         merge(channels, colorCmykChannel);
     } else { // Black
-        // Black is mapped to all channels as black
-        Mat black = Mat::zeros(cmykChannel.size(), CV_8UC1);
-        vector<Mat> channels = {black, black, black};
-        merge(channels, colorCmykChannel);
+
+        colorCmykChannel=cmykChannel;
     }
 
 }

@@ -50,69 +50,16 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 
 
-
-#INCLUDEPATH += "G:/opencv_4.5.4_mingw730/opencv/build_opencv_64/install/include"
-
-## 添加库路径和库文件
-#CONFIG(debug, debug|release) {
-#    DEFINES += DEBUG_BUILD
-#    LIBS += -L"G:/opencv_4.5.4_mingw730/opencv/build_opencv_64/install/x64/mingw/lib" \
-#            -llibopencv_calib3d450.dll \
-#            -llibopencv_core450.dll \
-#            -llibopencv_dnn450.dll\
-#            -llibopencv_features2d450.dll \
-#            -llibopencv_flann450.dll \
-#            -llibopencv_highgui450.dll \
-#            -llibopencv_imgcodecs450.dll \
-#            -llibopencv_imgproc450.dll \
-#            -llibopencv_ml450.dll \
-#            -llibopencv_objdetect450.dll \
-#            -llibopencv_photo450.dll \
-#            -llibopencv_stitching450.dll \
-#            -llibopencv_video450.dll \
-#            -llibopencv_videoio450.dll
-#} else {
-#    DEFINES += RELEASE_BUILD
-#    LIBS += -L"G:/opencv_4.5.4_mingw730/opencv/build_opencv_64/install/x64/mingw/lib" \
-#            -llibopencv_calib3d450.dll\
-#            -llibopencv_core450.dll \
-#            -llibopencv_dnn450.dll \
-#            -llibopencv_features2d450.dll \
-#            -llibopencv_flann450.dll \
-#            -llibopencv_highgui450.dll \
-#            -llibopencv_imgcodecs450.dll \
-#            -llibopencv_imgproc450.dll \
-#            -llibopencv_ml450.dll \
-#            -llibopencv_objdetect450.dll \
-#            -llibopencv_photo450.dll \
-#            -llibopencv_stitching450.dll \
-#            -llibopencv_video450.dll \
-#            -llibopencv_videoio450.dll
-#}
-
 INCLUDEPATH += "G:/opencv_4.8.1_msvc/opencv/build/include"
 
-#LIBS += -L"G:/opencv_4.8.1_msvc/opencv\build/x64/vc16/lib" -lopencv_world481d
-#CONFIG(debug, debug|release) {
-#    DEFINES += DEBUG_BUILD
-#    LIBS += -L"G:/opencv_4.8.1_msvc/opencv\build/x64/vc16/lib" -lopencv_world481d
-#} else {
-#    DEFINES += RELEASE_BUILD
-#    LIBS += -L"G:/opencv_4.8.1_msvc/opencv\build/x64/vc16/lib" -lopencv_world481
-#}
 
 LIBS += -L"G:/opencv_4.8.1_msvc/opencv\build/x64/vc16/lib" -lopencv_world481d
 
 
-#LIBS += -L"G:\mingw64-potrace\lib"  -llibpotrace
-
-#LIBS += -L"G:/potrace-1.15/src_mini/potrace/bin/Debug"  -llibpotrace
-
-#LIBS += -L"G:/potrace-1.15/src_mini/mingw730"  -llibpotrace.dll
-
-#LIBS += -L"G:/potrace-1.16/potrace-1.16_mingw730/src_mini/lib"  -llibpotrace.dll
 
 
+
+QMAKE_CXXFLAGS += /FS
 
 DISTFILES += \
     Makefile \

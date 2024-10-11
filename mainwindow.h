@@ -27,12 +27,7 @@ private slots:
     void exportGrayImage();
     void colorSaturationChanged(int index);
     void blackLayerChanged(bool checked);
-    void colorLayerChanged();
     void halftoneGridTypeChanged(int index);
-    void pBdisplayImage1();
-    void pBdisplayImage2();
-    void pBdisplayImage3();
-    void pBdisplayImage4();
 
     void dSBcAdjustmentCoefficient(double value);
     void dSBmAdjustmentCoefficient(double value);
@@ -72,6 +67,10 @@ private:
     double dataDenstyScaling;
     double imageHeight;
     double pixelGridHeight;
+    double dsbLineDistanceC;
+    double dsbLineDistanceM;
+    double dsbLineDistanceY;
+    double dsbLineDistanceK;
     //double colorSaturation;
     QVector<QVector<int>> ColorCorrection;
     QVector <double> colorSaturationList;

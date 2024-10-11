@@ -33,11 +33,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->pBloadImage, &QPushButton::clicked, this, &MainWindow::loadImage);
     connect(ui->pBstartLayering, &QPushButton::clicked, this, &MainWindow::analyzeImage);
 
-    connect(ui->pBdisplayImage1, &QPushButton::clicked, this, &MainWindow::pBdisplayImage1);
-    connect(ui->pBdisplayImage2, &QPushButton::clicked, this, &MainWindow::pBdisplayImage2);
-    connect(ui->pBdisplayImage3, &QPushButton::clicked, this, &MainWindow::pBdisplayImage3);
-    connect(ui->pBdisplayImage4, &QPushButton::clicked, this, &MainWindow::pBdisplayImage4);
-
     connect(ui->pBsaveSchemeAs, &QPushButton::clicked, this, &MainWindow::saveAsScheme);
     connect(ui->pBsaveScheme, &QPushButton::clicked, this, &MainWindow::saveScheme);
     connect(ui->pbNewScheme, &QPushButton::clicked, this, &MainWindow::newScheme);
@@ -50,20 +45,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->hSColorSaturation, &QSlider::valueChanged, this, &MainWindow::colorSaturationChanged);
 
     connect(ui->cBblackLayering, &QCheckBox::toggled, this, &MainWindow::blackLayerChanged);
-    connect(ui->cmbColorLayerdType,
-            QOverload<const QString &>::of(&QComboBox::currentIndexChanged),
-            this,
-            &MainWindow::colorLayerChanged);
-    connect(ui->cbGridType,
-            QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this,
-            &MainWindow::halftoneGridTypeChanged);
 
 
-
-    //    connect(ui->pBexportVectorDiagram, &QPushButton::clicked, this, &MainWindow::exportVectorImage);
-    //    connect(ui->pBexportGrayScaleImage, &QPushButton::clicked, this, &MainWindow::exportGrayImage);
-    //connect(ui->dSBcolorSaturation, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &MainWindow::colorSaturationChanged);
 
 
     init();
@@ -142,13 +125,15 @@ void MainWindow::analyzeImage() {
 
 
     bool  DrawLntype;
-    double lineDistance_f=ui->dsbLineDistance->value();
+    floydsetin->lineDistanceC=ui->dsbLineDistanceC->value();
+    floydsetin->lineDistanceM=ui->dsbLineDistanceM->value();
+    floydsetin->lineDistanceY=ui->dsbLineDistanceY->value();
+    floydsetin->lineDistanceK=ui->dsbLineDistanceK->value();
     double imageHeight=ui->sBimageHeight->value();
     int   grayLevel=ui->sbGrayLevel->value();
     bool blackLayer=ui->cBblackLayering->checkState();
-    double density_factor=imageHeight/(lineDistance_f*grayLevel);
-
-
+    floydsetin->floydsetinTooLlineDistance=std::max({floydsetin->lineDistanceC, floydsetin->lineDistanceM, floydsetin->lineDistanceY, floydsetin->lineDistanceK});
+    floydsetin->floysetinTooLimageHeight=imageHeight;
 
     vector<int> colorList;
     Mat img_cmyk,halftoneOut,mat_not,circleOrRect,processMat;
@@ -163,74 +148,50 @@ void MainWindow::analyzeImage() {
     if(ui->cmbDrawLnType->currentIndex()==0){DrawLntype=true;}else { DrawLntype=false;}
 
 
-    if (ui->cmbColorLayerdType->currentText()=="CMYK"){
-        Mat ProcessImageBN;
-        ProcessImageBN=ProcessImage;
-        // Split CMYK channels
-        img_cmyk.create(ProcessImage.rows, ProcessImage.cols, CV_8UC4);
-        if(blackLayer){ProcessImageBN = Mat();bitwise_not(ProcessImage,ProcessImageBN);}
-        ImProcess->splitCMYK(ProcessImageBN, img_cmyk);
-        //ImProcess->rgbToCmyk(ProcessImage, img_cmyk);
-        split(img_cmyk, vecCmykRgb);
+    Mat ProcessImageBN;
+    ProcessImageBN=ProcessImage;
+    // Split CMYK channels
+    img_cmyk.create(ProcessImage.rows, ProcessImage.cols, CV_8UC4);
+    if(blackLayer){ProcessImageBN = Mat();bitwise_not(ProcessImage,ProcessImageBN);}
+    ImProcess->splitCMYK(ProcessImageBN, img_cmyk);
+    //ImProcess->rgbToCmyk(ProcessImageBN, img_cmyk);
+    split(img_cmyk, vecCmykRgb);
 
-        QLabel *cmykLabels[4] = {ui->lbOriginalImageDisplay_cORr, ui->lbOriginalImageDisplay_mORg, ui->lbOriginalImageDisplay_yORb, ui->lbOriginalImageDisplay_k};
-        // 对于C, M, Y通道
+    QLabel *cmykLabels[4] = {ui->lbOriginalImageDisplay_cORr, ui->lbOriginalImageDisplay_mORg, ui->lbOriginalImageDisplay_yORb, ui->lbOriginalImageDisplay_k};
+    // 对于C, M, Y通道
+    Contrast=vecCmykRgb;
 
-        // 遍历CMYK通道
-        for (int i = 0; i < 4; ++i) {
+    // 遍历CMYK通道
+    for (int i = 0; i < 4; ++i) {
 
 
-            Mat colorCmykChannel;
-            ImProcess->processChannels(vecCmykRgb,colorCmykChannel,i);
-            // 显示图像
-            displayImage(colorCmykChannel, cmykLabels[i]);
-            // 保存图像
-            QString fileName = QString("CMYK_%1.png").arg(i);
-            QString filePath = imageSplitDirPath + "/" + fileName;
-            cv::imwrite(filePath.toStdString(), colorCmykChannel);
-        }
-        // 合并Cyan, Magenta和Yellow通道生成一个CMY图像
-        Mat Cmy;
-        vector<Mat> cmyChannels = {
-            vecCmykRgb[0] + vecCmykRgb[2],  // 合并Cyan和Yellow通道到Red
-            vecCmykRgb[0] + vecCmykRgb[1],  // 合并Cyan和Magenta通道到Green
-            vecCmykRgb[1] + vecCmykRgb[2]   // 合并Magenta和Yellow通道到Blue
-        };
-
-        // 对每个通道进行限制，确保值在0到255之间
-        for (Mat &channel : cmyChannels) {
-            cv::threshold(channel, channel, 255, 255, THRESH_TRUNC); // 限制最大值为255
-        }
-
-        // 合并通道
-        merge(cmyChannels, Cmy);
-
-        // 显示CMY图像
-//        namedWindow("Cmy", WINDOW_NORMAL);
-//        imshow("Cmy", Cmy);
-//        waitKey(0);
-        Contrast=vecCmykRgb;
+        Mat colorCmykChannel;
+        ImProcess->processChannels(vecCmykRgb,colorCmykChannel,i);
+        dSBcAdjustmentCoefficient(ui->dSBcAdjustmentCoefficient->value());
+        dSBmAdjustmentCoefficient(ui->dSBmAdjustmentCoefficient->value());
+        dSByAdjustmentCoefficient(ui->dSByAdjustmentCoefficient->value());
+        dSBkAdjustmentCoefficient(ui->dSBkAdjustmentCoefficient->value());
+        // 显示图像
+        displayImage(colorCmykChannel, cmykLabels[i]);
 
     }
+    // 合并Cyan, Magenta和Yellow通道生成一个CMY图像
+    Mat Cmy;
+    vector<Mat> cmyChannels = {
+        vecCmykRgb[0] + vecCmykRgb[2],  // 合并Cyan和Yellow通道到Red
+        vecCmykRgb[0] + vecCmykRgb[1],  // 合并Cyan和Magenta通道到Green
+        vecCmykRgb[1] + vecCmykRgb[2]   // 合并Magenta和Yellow通道到Blue
+    };
 
-    else {
-        // Split RGB channels
-        split(ProcessImage, vecCmykRgb);
-
-        // Display and save RGB channels
-        QLabel *rgbLabels[3] = {ui->lbOriginalImageDisplay_yORb, ui->lbOriginalImageDisplay_mORg, ui->lbOriginalImageDisplay_cORr};
-        for (int i = 0; i < 3; ++i) {
-            std::vector<Mat> channels = {Mat::zeros(ProcessImage.size(), CV_8UC1), Mat::zeros(ProcessImage.size(), CV_8UC1), Mat::zeros(ProcessImage.size(), CV_8UC1)};
-            channels[i] = vecCmykRgb[i]; // Set the respective channel
-            Mat colorRgbChannel;
-            merge(channels, colorRgbChannel);
-            displayImage(colorRgbChannel, rgbLabels[i]);
-            QString fileName = QString("BGR_%1.png").arg(i);
-            QString filePath = imageSplitDirPath + "/" + fileName;
-            cv::imwrite(filePath.toStdString(), colorRgbChannel);
-        }
-        Contrast=vecCmykRgb;
+    // 对每个通道进行限制，确保值在0到255之间
+    for (Mat &channel : cmyChannels) {
+        cv::threshold(channel, channel, 255, 255, THRESH_TRUNC); // 限制最大值为255
     }
+
+    // 合并通道
+    merge(cmyChannels, Cmy);
+
+
 
     selcetLayre(colorList);
     if( colorList.empty()){
@@ -240,38 +201,27 @@ void MainWindow::analyzeImage() {
         return;}
 
 
-
+    QVector<double> lineDistance={floydsetin->lineDistanceC, floydsetin->lineDistanceM, floydsetin->lineDistanceY, floydsetin->lineDistanceK};
     for(const auto &intColor : colorList){
 
         processMat=NULL;
         processMat=vecCmykRgb[intColor];
 
+        grayLevel=std::floor((grayLevel*floydsetin->floydsetinTooLlineDistance/lineDistance[intColor]));
+        double density_factor=imageHeight/(lineDistance[intColor]*grayLevel);
 
         ImProcess->resizeImageWithLanczos4(processMat,processMat,density_factor);
-
-
+        floydsetin->vectorSize=processMat.cols*processMat.rows*grayLevel*grayLevel;
 
         cv::flip(processMat,processMat,0);
 
-        floydsetin->pltPathPlt=imageSplitDirPath+QString("/LayerColor %1 .plt").arg(intColor);
         floydsetin->pltPathDxf=imageSplitDirPath+QString("/LayerColor %1 Matrix.dxf").arg(intColor);
+        floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(processMat, halftoneOut,grayLevel,DrawLntype,intColor,dataDenstyScaling,blackRange);
 
-        if(ui->rBisWithMatrix->isChecked()){
-            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionAndMatrixTest(processMat, halftoneOut,lineDistance_f,imageHeight,grayLevel,DrawLntype,intColor,dataDenstyScaling,blackRange);
-            cv::flip(processMat,processMat,0);
-            cv::flip(halftoneOut,halftoneOut,0);
-        }else {
+        cv::flip(processMat,processMat,0);
+        cv::flip(halftoneOut,halftoneOut,0);
 
-            floydsetin->halftoneUsingline_doubelSizeGridWithErrorDiffusionTest(processMat, halftoneOut,lineDistance_f,imageHeight,grayLevel,DrawLntype ,intColor,dataDenstyScaling,blackRange);
-            cv::flip(processMat,processMat,0);
-            cv::flip(halftoneOut,halftoneOut,0);
-        }
         // 将线段位置信息保存为 .plt 文件
-
-
-        QString circle_fileName = QString("circleOrRect.png").arg(intColor);
-        QString circle_filePath = imageSplitDirPath + "/" + circle_fileName;
-        cv::imwrite(circle_filePath.toStdString(),processMat);
 
     }
     QMessageBox box(QMessageBox::Question,QStringLiteral("提示"),QStringLiteral("矢量图生成完成"));
@@ -335,7 +285,7 @@ void MainWindow::loadScheme(const QString &filePath) {
 
 
     scheme->loadScheme(filePath, imagePath,grayLevel, halftoneGridType, DrawLnType, colorlayereType,
-                       pixelGridHeight,imageHeight, blackLayer,dataDenstyScaling,blackRange,colorSaturationList,colorLayerList,ColorCorrection);
+                       dsbLineDistanceC,  dsbLineDistanceM,  dsbLineDistanceY,  dsbLineDistanceK,imageHeight, blackLayer,dataDenstyScaling,blackRange,colorSaturationList,colorLayerList,ColorCorrection);
 
     ui->hSColorSaturation->setValue(colorSaturationList[0]);
     ui->lbColorSaturationDisplay->setText(QString::number(colorSaturationList[0]));
@@ -345,26 +295,32 @@ void MainWindow::loadScheme(const QString &filePath) {
     ui->dSBkAdjustmentCoefficient->setValue(colorSaturationList[4]);
     ui->sbGrayLevel->setValue(grayLevel);
     ui->cBblackLayering->setChecked(blackLayer);
-    ui->dsbLineDistance->setValue(pixelGridHeight);
+    ui->dsbLineDistanceC->setValue(dsbLineDistanceC);
+    ui->dsbLineDistanceM->setValue(dsbLineDistanceM);
+    ui->dsbLineDistanceY->setValue(dsbLineDistanceY);
+    ui->dsbLineDistanceK->setValue(dsbLineDistanceK);
+
     ui->leSchemeDameDisplay->setText(scheme->schemePath);
-    ui->cmbColorLayerdType->setCurrentText(colorlayereType);
+
     ui->sBimageHeight->setValue(imageHeight);
-    ui->cbGridType->setCurrentIndex(halftoneGridType);
     ui->cmbDrawLnType->setCurrentIndex(DrawLnType);
-    ui->dsbdataDenstyScaling->setValue(dataDenstyScaling);
-    ui->sbBlackRange->setValue(blackRange);
+
     // 设置各个 QCheckBox 的状态
     ui->cBSelectCorR->setCheckState(colorLayerList[0] ? Qt::Checked : Qt::Unchecked);
     ui->cBSelectMorG->setCheckState(colorLayerList[1] ? Qt::Checked : Qt::Unchecked);
     ui->cBSelectYorB->setCheckState(colorLayerList[2] ? Qt::Checked : Qt::Unchecked);
     ui->cBSelectK->setCheckState(colorLayerList[3] ? Qt::Checked : Qt::Unchecked);
 
+    ui->dsbLineDistanceC->setValue(dsbLineDistanceC);
+    ui->dsbLineDistanceM->setValue(dsbLineDistanceM);
+    ui->dsbLineDistanceY->setValue(dsbLineDistanceY);
+    ui->dsbLineDistanceK->setValue(dsbLineDistanceK);
 
     QVector<QVector<QSpinBox*>> ColorCorrectionUi={{ui->sBccOriginal,ui->sBcmOriginal,ui->sBcyOriginal},
-                     {ui->sBmcOriginal,ui->sBmmOriginal,ui->sBmyOriginal},
-                     {ui->sBycOriginal,ui->sBymOriginal,ui->sByyOriginal},
-                     //{ui->sBkcOriginal,ui->sBkmOriginal,ui->sBkyOriginal,ui->sBkkOriginal}
-                                                                                            };
+                                                   {ui->sBmcOriginal,ui->sBmmOriginal,ui->sBmyOriginal},
+                                                   {ui->sBycOriginal,ui->sBymOriginal,ui->sByyOriginal},
+                                                   //{ui->sBkcOriginal,ui->sBkmOriginal,ui->sBkyOriginal,ui->sBkkOriginal}
+                                                  };
 
 
 
@@ -428,11 +384,12 @@ void MainWindow::saveAsScheme() {
         ColorCorrection={{ui->sBccOriginal->value(),ui->sBcmOriginal->value(),ui->sBcyOriginal->value()},
                          {ui->sBmcOriginal->value(),ui->sBmmOriginal->value(),ui->sBmyOriginal->value()},
                          {ui->sBycOriginal->value(),ui->sBymOriginal->value(),ui->sByyOriginal->value()},
-                         };
+                        };
 
         scheme->saveCurrentScheme(fileName, imagePath, ui->sbGrayLevel->value(), halftoneGridType , ui->cmbDrawLnType->currentIndex()
-                                  , ui->cmbColorLayerdType->currentText()  ,ui->dsbLineDistance->value(),ui->sBimageHeight->value()
-                                  ,ui->cBblackLayering->isChecked(), ui->dsbLineDistance->value(),ui->sbBlackRange->value(),colorSaturationList,colorLayerList,ColorCorrection);
+                                  , "cmyk"  ,ui->dsbLineDistanceC->value(),ui->dsbLineDistanceM->value(),ui->dsbLineDistanceY->value(),
+                                  ui->dsbLineDistanceK->value(),ui->sBimageHeight->value()
+                                  ,ui->cBblackLayering->isChecked(), ui->dsbLineDistanceC->value(),0,colorSaturationList,colorLayerList,ColorCorrection);
         scheme->setSchemePath(fileName);
     }
     save_setting("IsStartWithScheme",ui->cbStartInScheme->isChecked());
@@ -464,11 +421,12 @@ void MainWindow::saveScheme() {
         ColorCorrection={{ui->sBccOriginal->value(),ui->sBcmOriginal->value(),ui->sBcyOriginal->value()},
                          {ui->sBmcOriginal->value(),ui->sBmmOriginal->value(),ui->sBmyOriginal->value()},
                          {ui->sBycOriginal->value(),ui->sBymOriginal->value(),ui->sByyOriginal->value()},
-                         };
+                        };
 
-        scheme->saveCurrentScheme(scheme->getSchemePath(), imagePath,  ui->sbGrayLevel->value(),ui->cbGridType->currentIndex() , ui->cmbDrawLnType->currentIndex()
-                                  , ui->cmbColorLayerdType->currentText()  ,ui->dsbLineDistance->value(),ui->sBimageHeight->value()
-                                  ,ui->cBblackLayering->isChecked(), ui->dsbdataDenstyScaling->value(),ui->sbBlackRange->value(),colorSaturationList,colorLayerList,ColorCorrection);
+        scheme->saveCurrentScheme(scheme->getSchemePath(), imagePath,  ui->sbGrayLevel->value(),0 , ui->cmbDrawLnType->currentIndex()
+                                  , "cmyk"  ,ui->dsbLineDistanceC->value(),ui->dsbLineDistanceM->value(),ui->dsbLineDistanceY->value(),
+                                  ui->dsbLineDistanceK->value(),ui->sBimageHeight->value()
+                                  ,ui->cBblackLayering->isChecked(), 0,0,colorSaturationList,colorLayerList,ColorCorrection);
     } else {
         saveAsScheme();
     }
@@ -495,19 +453,25 @@ void MainWindow::newScheme() {
         // 设置默认值
         ui->hSColorSaturation->setValue(1.0);
         ui->cBblackLayering->setChecked(false);
-        ui->sbGrayLevel->setValue(4);
-        ui->dsbLineDistance->setValue(1.0);
-        ui->dsbdataDenstyScaling->setValue(0.4);
-        ui->sbBlackRange->setValue(4);
+        ui->sbGrayLevel->setValue(3);
+        ui->dsbLineDistanceC->setValue(1.0);
+        ui->dsbLineDistanceM->setValue(1.0);
+        ui->dsbLineDistanceY->setValue(1.0);
+        ui->dsbLineDistanceK->setValue(1.0);
+
         imagePath.clear();
         //loadImage();  // 清空图像显示
-        int grayLevel=4;
-        double dsbLineDistance=0.015;
-        double imageHeight=37;
-        double dataDenstyScaling=0.35;
+        int grayLevel=3;
+        double dsbLineDistanceC=0.01;
+        double dsbLineDistanceM=0.01;
+        double dsbLineDistanceY=0.01;
+        double dsbLineDistanceD=0.01;
+        double imageHeight=25;
+        double dataDenstyScaling=1;
         int BlackRange=grayLevel;
         // 创建并保存空白方案文件
-        scheme->saveCurrentScheme(fileName, imagePath,grayLevel, 1, 1,"CMYK", dsbLineDistance,imageHeight,false,dataDenstyScaling,BlackRange,{1.0,1.0,1.0,1.0,1.0},{true,true,true,true},{{100,0,0},{0,100,0},{0,0,100}});
+        scheme->saveCurrentScheme(fileName, imagePath,grayLevel, 1, 1,"CMYK", dsbLineDistanceC,dsbLineDistanceM,dsbLineDistanceY,dsbLineDistanceD,
+                                  imageHeight,false,dataDenstyScaling,BlackRange,{1.0,1.0,1.0,1.0,1.0},{true,true,true,true},{{100,0,0},{0,100,0},{0,0,100}});
         ui->leSchemeDameDisplay->setText(scheme->schemePath);
     }
 }
@@ -531,10 +495,7 @@ void MainWindow::save_setting(const QString &key, const QVariant &value) {
 
 
 
-void MainWindow::colorLayerChanged(){
 
-
-}
 
 void MainWindow::dSBcAdjustmentCoefficient(double value){
 
@@ -571,106 +532,8 @@ void MainWindow::dSBkAdjustmentCoefficient(double value){
 
 }
 
-void MainWindow::pBdisplayImage1(){
-
-    if (vecCmyk.empty()||vecRgb.empty()){return;}
 
 
-    if(ui->cmbColorLayerdType->currentText()=="CMYK"){
-
-        namedWindow("image",cv::WINDOW_NORMAL);
-        // 设置鼠标回调函数
-        //img=vecCmyk[2];
-        cv::setMouseCallback("image", onMouse, nullptr);
-        imshow("image",vecCmyk[0]);
-    }else {
-
-        namedWindow("image");
-        cv::setMouseCallback("image", onMouse, nullptr);
-        imshow("image",vecRgb[0]);
-    }
-
-}
-
-
-void MainWindow::pBdisplayImage2(){
-
-    if (vecCmyk.empty()||vecRgb.empty()){return;}
-    if(ui->cmbColorLayerdType->currentText()=="CMYK"){
-
-        namedWindow("image",cv::WINDOW_NORMAL);
-        // 设置鼠标回调函数
-        //img=vecCmyk[2];
-        cv::setMouseCallback("image", onMouse, nullptr);
-        imshow("image",vecCmyk[1]);
-    }else {
-
-        namedWindow("image");
-        cv::setMouseCallback("image", onMouse, nullptr);
-        imshow("image",vecRgb[1]);
-    }
-
-}
-
-void MainWindow::pBdisplayImage3(){
-
-    if (vecCmyk.empty()||vecRgb.empty()){return;}
-
-    if(ui->cmbColorLayerdType->currentText()=="CMYK"){
-
-        namedWindow("image",cv::WINDOW_NORMAL);
-        // 设置鼠标回调函数
-        //img=vecCmyk[2];
-        cv::setMouseCallback("image", onMouse, nullptr);
-        //imshow("image",vecCmyk[2]);
-    }else {
-
-        namedWindow("image");
-        //cv::setMouseCallback("image", onMouse, nullptr);
-        imshow("image",vecRgb[2]);
-    }
-
-}
-
-void MainWindow::pBdisplayImage4(){
-
-    if (vecCmyk.empty()||vecRgb.empty()){return;}
-
-    if(ui->cmbColorLayerdType->currentText()=="CMYK"){
-
-        namedWindow("image",cv::WINDOW_NORMAL);
-        // 设置鼠标回调函数
-        //img=vecCmyk[2];
-        //cv::setMouseCallback("image", onMouse, nullptr);
-        imshow("image",vecCmyk[3]);
-    }else {
-
-        //namedWindow("image");
-        //cv::setMouseCallback("image", onMouse, nullptr);
-        imshow("image",vecRgb[3]);
-    }
-}
-
-
-// 鼠标回调函数
-void MainWindow::onMouse(int event, int x, int y, int flags, void* userdata) {
-
-    cv::Mat img_resized;
-    double scaleFactor = 1.0;
-    const double scaleStep = 0.1;
-    if (event == cv::EVENT_MOUSEWHEEL) {
-        if (flags > 0) {  // 滚轮向上滚动，放大图像
-            scaleFactor += scaleStep;
-        } else if (flags < 0) {  // 滚轮向下滚动，缩小图像
-            scaleFactor -= scaleStep;
-            if (scaleFactor < scaleStep) {
-                scaleFactor = scaleStep;  // 防止缩放因子过小
-            }
-        }
-        cv::resize(img, img_resized, cv::Size(), scaleFactor, scaleFactor);
-        cv::imshow("image", img_resized);
-    }
-}
 
 
 void MainWindow::halftoneGridTypeChanged(int index){
@@ -683,44 +546,17 @@ void MainWindow::halftoneGridTypeChanged(int index){
 
 
 
-
-
-
-
-
-
-
-
 void  MainWindow::selcetLayre(vector<int> &color){
 
 
-    if (ui->cmbColorLayerdType->currentText()=="CMYK"){
-        if (ui->cBSelectCorR->isChecked()){          color.push_back(0);    }
 
-        if (ui->cBSelectMorG->isChecked()) {    color.push_back(1);    }
+    if (ui->cBSelectCorR->isChecked()){          color.push_back(0);    }
 
-        if (ui->cBSelectYorB->isChecked()) {    color.push_back(2);    }
+    if (ui->cBSelectMorG->isChecked()) {    color.push_back(1);    }
 
-        if (ui->cBSelectK->isChecked()) {    color.push_back(3);    }
-    }else {
+    if (ui->cBSelectYorB->isChecked()) {    color.push_back(2);    }
 
-        if (ui->cBSelectCorR->isChecked()){          color.push_back(0);    }
+    if (ui->cBSelectK->isChecked()) {    color.push_back(3);    }
 
-        if (ui->cBSelectMorG->isChecked()) {    color.push_back(1);    }
-
-        if (ui->cBSelectYorB->isChecked()) {    color.push_back(2);    }
-    }
 
 }
-//    namedWindow("CMYK_C");
-//    namedWindow("CMYK_M");
-//    namedWindow("CMYK_Y");
-//    namedWindow("CMYK_K");
-//    namedWindow("CMYK");
-//    namedWindow("halftone_mat");
-//    imshow("CMYK_C",vecCmyk[0]);
-//    imshow("CMYK_M",vecCmyk[1]);
-//    imshow("CMYK_Y",vecCmyk[2]);
-//    imshow("CMYK_K",vecCmyk[3]);
-//    imshow("CMYK",img_cmyk);
-//    imshow("halftone_mat",halftone_mat_not);
